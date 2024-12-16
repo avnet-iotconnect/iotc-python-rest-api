@@ -1,0 +1,96 @@
+{
+    "code": "soundgener",
+    "name": "soundgener",
+    "authType": 2,
+    "isIotEdgeEnable": false,
+    "attributes": [
+        {
+            "name": "cpu_usage",
+            "type": "DECIMAL",
+            "unit": "%"
+        },
+        {
+            "name": "memory_usage",
+            "type": "DECIMAL",
+            "unit": "%"
+        },
+        {
+            "name": "disk_usage",
+            "type": "DECIMAL",
+            "unit": "%"
+        },
+        {
+            "name": "network_sent",
+            "type": "INTEGER",
+            "unit": "bytes"
+        },
+        {
+            "name": "network_received",
+            "type": "INTEGER",
+            "unit": "bytes"
+        },
+        {
+            "name": "audio_sink",
+            "type": "INTEGER"
+        },
+        {
+            "name": "audio_channel",
+            "type": "STRING"
+        }
+    ],
+    "commands": [
+        {
+            "name": "liquid (1-17)",
+            "command": "liquid",
+            "requiredParam": true,
+            "requiredAck": false,
+            "isOTACommand": false
+        },
+        {
+            "name": "z-channel (1 = Sensor 1, 2 = Sensor 2, 3 = Both)",
+            "command": "channel",
+            "requiredParam": true,
+            "requiredAck": false,
+            "isOTACommand": false
+        },
+        {
+            "name": "horn (1-16)",
+            "command": "horn",
+            "requiredParam": true,
+            "requiredAck": false,
+            "isOTACommand": false
+        },
+        {
+            "name": "alarm (1-10)",
+            "command": "alarm",
+            "requiredParam": true,
+            "requiredAck": false,
+            "isOTACommand": false
+        },
+        {
+            "name": "race (1-30)",
+            "command": "race",
+            "requiredParam": true,
+            "requiredAck": false,
+            "isOTACommand": false
+        },
+        {
+            "name": "bark (1-14)",
+            "command": "bark",
+            "requiredParam": true,
+            "requiredAck": false,
+            "isOTACommand": false
+        }
+    ],
+    "messageVersion": "2.1",
+    "msgCode": "XG4E14R",
+    "greenGrass": "0",
+    "properties": {
+        "description": null,
+        "dataFrequency": "5",
+        "fileSupport": false
+    },
+    "_meta": {
+        "version": "2.0"
+    }
+}
