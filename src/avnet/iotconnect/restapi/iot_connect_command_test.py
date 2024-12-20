@@ -4,7 +4,7 @@ import argparse
 import requests
 import json
 
-from common.authentication import authenticate
+from common.credentials import authenticate
 from common.constants import (
     API_DEVICE_URL,
     DEVICE_SOUND_CLASS,

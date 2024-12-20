@@ -5,7 +5,7 @@ import requests
 import string
 import random
 
-from common.authentication import authenticate
+from common.credentials import authenticate
 from common.constants import (
     DEVICE_SOUND_CLASS,
     FW_OTA_FILE,

@@ -3,7 +3,7 @@
 import argparse
 import requests
 
-from common.authentication import authenticate
+from common.credentials import authenticate
 from common.constants import (
     API_DEVICE_URL,
     API_EVENT_URL,

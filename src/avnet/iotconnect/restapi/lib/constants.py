@@ -9,7 +9,6 @@ API_FW_URL = "https://awspocfirmware.iotconnect.io/api/v2.1/"
 API_FILE_URL = "https://awspocfile.iotconnect.io/api/v2.1/"
 API_EVENT_URL = "https://awspocevent.iotconnect.io/api/v2.1/"
 
-BASIC_TOKEN = "Auth/basic-token"
 LOGIN = "Auth/login"
 DEVICE_TEMPLATE_CREATE = "device-template/quick"
 DEVICE_TEMPLATE_LIST = "device-template"
