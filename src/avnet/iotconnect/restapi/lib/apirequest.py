@@ -1,9 +1,11 @@
-import requests
 from http import HTTPStatus
 
-from . import credentials
-from .error import ResponseException
+import requests
 from jsonpath_ng.ext import parse
+from requests.adapters import HTTPAdapter, Retry
+
+from . import credentials
+from .error import ResponseError
 
 
 class Headers(dict[str, str]):
@@ -13,7 +15,7 @@ class Headers(dict[str, str]):
     V_APP_JSON = "application/json"
 
 
-from typing import NoReturn, List, Any
+from typing import Any
 
 
 class Response:
@@ -30,9 +32,9 @@ class Response:
     def ensure_success(self, codes_ok: list[int] = frozenset([HTTPStatus.OK])) -> None:
         """If status is bad - raise exception"""
         if self.value is None:
-            raise ResponseException("Unable to obtain response")
+            raise ResponseError("Unable to obtain response")
         if self.status not in codes_ok:
-            raise ResponseException("Bad HTTP response status: " + str(self.status))
+            raise ResponseError("Bad HTTP response status: " + str(self.status))
 
     def has_value(self, expr) -> bool:
         jsonpath_expr = parse(expr)
@@ -51,19 +53,26 @@ class Response:
     def get_value_or_raise(self, expr) -> Any:
         value = self.get_value(expr)
         if value is None:
-            raise ResponseException('Could not locate "%s" in the response' % expr)
+            raise ResponseError('Could not locate "%s" in the response' % expr)
         return value
 
     def get_values_or_raise(self, expr) -> Any:
         values = self.get_values(expr)
         if len(values) == 0:
-            raise ResponseException('Could not locate "%s" in the response' % expr)
+            raise ResponseError('Could not locate "%s" in the response' % expr)
         return values
 
 
 def request(endpoint: str, path: str, data=None, headers: dict[str, str] = None):
-    if headers is None: # default headers
+    # print("data=%s" % data)
+    s = requests.Session()
+    retries = Retry(total=3, backoff_factor=0.1, status_forcelist=[500, 502, 503, 504])
+    s.mount('https://', HTTPAdapter(max_retries=retries))
+    if headers is None:  # default headers
         headers = credentials.get_auth_headers()
-    response = Response(requests.post(endpoint + path, json=data, headers=headers))
+    if data is not None:
+        response = Response(s.post(endpoint + path, json=data, headers=headers))
+    else:
+        response = Response(s.get(endpoint + path, json=data, headers=headers))
     response.ensure_success()
     return response

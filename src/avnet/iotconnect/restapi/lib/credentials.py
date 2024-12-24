@@ -1,31 +1,47 @@
 """This module provides IoTConnect authentication functionality."""
+import datetime
 
-from typing import MutableMapping
+from . import apiurl, config
+from .apirequest import Headers, request
+from .error import UsageError
 
-import requests
 
-from . import apiurl
-from .apirequest import Headers
-from .apirequest import Response
+def _ts_now():
+    return datetime.datetime.now(datetime.timezone.utc).timestamp()
+
 
 access_token = None
 refresh_token = None
+_token_expiry = 0  # just initialize for "sense" purposes
+_token_time = 0
 
-def _get_basic_token() -> str:
-    """Get basic token from the IoT Connect and return it."""
-    print(apiurl.ep_auth + "/Auth/basic-token")
-    response = Response(requests.get(apiurl.ep_auth + "/Auth/basic-token"))
-    response.ensure_success()
-    basic_token = response.get_value("data")
-    print("Basic token: " + basic_token)
-    return basic_token
 
-def is_authenticated() -> bool:
-    return access_token is not None
+def check() -> bool:
+    if access_token is None:
+        return False
+    else:
+        if _token_expiry < _ts_now():
+            return False
+        if should_refresh():
+            # It's been longer than an hour since we refreshed the token. We should refresh it now.
+            print("Refreshing the token...")
+            refresh()
+            _save_config()
+        return True
 
-def authenticate(username: str, password: str, solution_key: str) -> str:
-    global access_token, refresh_token
+
+def authenticate(username: str, password: str, solution_key: str) -> None:
+    global access_token, refresh_token, _token_time, _token_expiry
     """Record access token from IoT Connect and return it. Entrance point to this module"""
+    missing_args = []
+    if username is None:
+        missing_args.append("Username")
+    if password is None:
+        missing_args.append("Password")
+    if solution_key is None:
+        missing_args.append("Solution Key")
+    if len(missing_args):
+        raise UsageError('authenticate: The following arguments are missing: %s' % ", ".join(missing_args))
     basic_token = _get_basic_token()
     headers = {
         Headers.N_CONTENT_TYPE: Headers.V_APP_JSON,
@@ -37,35 +53,77 @@ def authenticate(username: str, password: str, solution_key: str) -> str:
         "username": username,
         "password": password
     }
-    response = Response(requests.post(apiurl.ep_auth + "/Auth/login", json=data, headers=headers))
+    response = request(apiurl.ep_auth, "/Auth/login", data=data, headers=headers)
     response.ensure_success()
     access_token = str('Bearer %s' % response.get_value_or_raise("access_token"))
     refresh_token = response.get_value_or_raise("refresh_token")
-    print("refresh token: " + refresh_token)
-    print("Successful authentication. Access Token:")
-    print(access_token)
-    return access_token
+    expires_in = response.get_value_or_raise("expires_in")
+    _token_time = _ts_now()
+    _token_expiry = _token_time + expires_in
+    # print("refresh token: " + refresh_token)
+    print("Authentication successful.")
+    # print("access token: " + access_token)
+    _save_config()
 
-def refresh():
-    global access_token, refresh_token
 
+def should_refresh() -> bool:
+    return _token_time + 3600 < _ts_now()
+
+
+def refresh() -> None:
+    global access_token, refresh_token, _token_time, _token_expiry
     data = {
         "refreshtoken": refresh_token
     }
-
-    response = Response(requests.post(apiurl.ep_auth + "/Auth/refresh-token", json=data, headers=get_auth_headers()))
+    response = request(apiurl.ep_auth, "/Auth/refresh-token", data=data, headers=get_auth_headers())
     response.ensure_success()
     access_token = response.get_value_or_raise("access_token")
     refresh_token = response.get_value_or_raise("refresh_token")
-    print("refresh token: " + refresh_token)
-    print("Successful refresh. Access Token:")
-    print(access_token)
+    expires_in = response.get_value_or_raise("expires_in")
+    _token_time = _ts_now()
+    _token_expiry = _token_time + expires_in
+    # print("refresh token: " + refresh_token)
+    print("Token refreshed successfully.")
+    # print(access_token)
+    _save_config()
 
-def get_auth_headers(content_type=Headers.V_APP_JSON, accept=Headers.V_APP_JSON) -> MutableMapping[str, str]:
+
+def get_auth_headers(content_type=Headers.V_APP_JSON, accept=Headers.V_APP_JSON) -> dict[str, str]:
     """  Helper: Returns a shallow copy of headers used to authenticate other API call with the access token  """
     return dict({
         "Content-type": content_type,
         "Accept": accept,
-        "Authorization": access_token
+        "Authorization": "Bearer " + access_token
     })
 
+
+def _get_basic_token() -> str:
+    """Get basic token from the IoT Connect and return it."""
+    # print(apiurl.ep_auth + "/Auth/basic-token")
+    response = request(apiurl.ep_auth, "/Auth/basic-token")
+    response.ensure_success()
+    basic_token = response.get_value("data")
+    # print("Basic token: " + basic_token)
+    return basic_token
+
+
+def _save_config() -> None:
+    section = config.get_section(config.SECTION_AUTH)
+    section['access_token'] = access_token
+    section['refresh_token'] = refresh_token
+    section['token_time'] = str(round(_token_time))
+    section['token_expiry'] = str(round(_token_expiry))
+    config.write()
+
+
+def _load_config() -> None:
+    global access_token, refresh_token, _token_time, _token_expiry
+    section = config.get_section(config.SECTION_AUTH)
+    if section.get('access_token') is not None:
+        access_token = section['access_token']
+        refresh_token = section['refresh_token']
+        _token_time = int(section['token_time'])
+        _token_expiry = int(section['token_expiry'])
+
+
+_load_config()
