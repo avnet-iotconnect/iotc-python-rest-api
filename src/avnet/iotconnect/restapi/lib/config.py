@@ -1,20 +1,25 @@
+import configparser
 import os
 import pathlib
-import configparser
-import platformdirs
 from collections.abc import MutableMapping
+
+import platformdirs
+
+CONFIG_VERSION = "1.0" # for future compatibility and potential conversion
 
 SECTION_DEFAULT = 'default'
 SECTION_AUTH = 'authentication'
 
 _cp = configparser.ConfigParser()
-_app_config_dir = platformdirs.AppDirs(appname="iotccli", version="alpha").user_config_dir
+_app_config_dir = platformdirs.AppDirs(appname="iotc").user_config_dir
 _app_config_file = os.path.join(_app_config_dir, "config.ini")
 _is_initialized = False
 
+api_trace_enabled = True if os.environ.get("IOTC_API_TRACE") is not None else False
+
 
 def init() -> None:
-    global _is_initialized
+    global _is_initialized, api_trace_enabled
     if _is_initialized:
         return
     _is_initialized = True  # we should not attempt to init after the attempt below:
@@ -36,6 +41,10 @@ def init() -> None:
         return
     _cp.read(_app_config_file)
 
+    # override only if environment variable is not set
+    if not api_trace_enabled:
+        api_trace_enabled = _cp.getboolean(SECTION_DEFAULT, "api-trace")
+
 
 def is_valid() -> bool:
     return _cp.has_section(SECTION_AUTH)
@@ -44,6 +53,8 @@ def is_valid() -> bool:
 def write() -> bool:
     try:
         with open(_app_config_file, 'w') as app_config_file:
+            default = get_section(SECTION_DEFAULT)
+            default.version = CONFIG_VERSION
             # PyCharm seems to get this wrong: Expected type 'SupportsWrite[str]', got 'TextIO' instead
             # noinspection PyTypeChecker
             _cp.write(app_config_file)

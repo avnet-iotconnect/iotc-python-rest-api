@@ -4,7 +4,7 @@ import sys
 
 import avnet.iotconnect.restapi.lib.credentials as credentials
 import avnet.iotconnect.restapi.lib.apiurl as apiurl
-from avnet.iotconnect.restapi.lib.error import ResponseError, UsageError
+from avnet.iotconnect.restapi.lib.error import ResponseError, UsageError, ApiException
 
 
 def init():
@@ -56,7 +56,7 @@ def init():
     main_description = \
         """ 
         Use IoTConnect REST API to perform account and device operations.
-        Invoke \"configure\" first in order to log. This will create a session token which will be stored
+        Invoke \"configure\" first to log in. This will create a session token which will be stored
         on your system. This token will be used and refreshed automatically in subsequent invocations.
         """
     parser = argparse.ArgumentParser(
@@ -78,7 +78,7 @@ def process(argv):
     args = _parser.parse_args(argv)
     try:
         args.func(args)
-    except ResponseError as ex:
+    except ApiException as ex:
         print(ex)
         sys.exit(1)
     except UsageError as ex:

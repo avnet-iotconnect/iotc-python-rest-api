@@ -37,7 +37,9 @@ classifiers = [
     "Topic :: Internet",
 ]
 dependencies = [
-    "requests<3",
+    "requests>=2.32.3",
+    "platformdirs>=4.3.6"
+    "jmespath>=1.0.1",
 ]
 
 [project.urls]

@@ -1,33 +1,33 @@
 """This module provides IoTConnect authentication functionality."""
 import datetime
+from typing import Optional
 
 from . import apiurl, config
 from .apirequest import Headers, request
-from .error import UsageError
+from .error import UsageError, AuthError
 
 
 def _ts_now():
     return datetime.datetime.now(datetime.timezone.utc).timestamp()
 
 
-access_token = None
+access_token: Optional[str] = None
 refresh_token = None
 _token_expiry = 0  # just initialize for "sense" purposes
 _token_time = 0
 
 
-def check() -> bool:
+def check() -> None:
     if access_token is None:
-        return False
+        raise UsageError("No access token configured")
     else:
         if _token_expiry < _ts_now():
-            return False
+            raise AuthError("Token expired")
         if should_refresh():
             # It's been longer than an hour since we refreshed the token. We should refresh it now.
             print("Refreshing the token...")
             refresh()
             _save_config()
-        return True
 
 
 def authenticate(username: str, password: str, solution_key: str) -> None:
@@ -54,10 +54,9 @@ def authenticate(username: str, password: str, solution_key: str) -> None:
         "password": password
     }
     response = request(apiurl.ep_auth, "/Auth/login", data=data, headers=headers)
-    response.ensure_success()
-    access_token = str('Bearer %s' % response.get_value_or_raise("access_token"))
-    refresh_token = response.get_value_or_raise("refresh_token")
-    expires_in = response.get_value_or_raise("expires_in")
+    access_token = response.body.get_or_raise("access_token")
+    refresh_token = response.body.get_or_raise("refresh_token")
+    expires_in = response.body.get_or_raise("expires_in")
     _token_time = _ts_now()
     _token_expiry = _token_time + expires_in
     # print("refresh token: " + refresh_token)
@@ -76,10 +75,9 @@ def refresh() -> None:
         "refreshtoken": refresh_token
     }
     response = request(apiurl.ep_auth, "/Auth/refresh-token", data=data, headers=get_auth_headers())
-    response.ensure_success()
-    access_token = response.get_value_or_raise("access_token")
-    refresh_token = response.get_value_or_raise("refresh_token")
-    expires_in = response.get_value_or_raise("expires_in")
+    access_token = response.body.get_or_raise("access_token")
+    refresh_token = response.body.get_or_raise("refresh_token")
+    expires_in = response.body.get_or_raise("expires_in")
     _token_time = _ts_now()
     _token_expiry = _token_time + expires_in
     # print("refresh token: " + refresh_token)
@@ -91,18 +89,20 @@ def refresh() -> None:
 def get_auth_headers(content_type=Headers.V_APP_JSON, accept=Headers.V_APP_JSON) -> dict[str, str]:
     """  Helper: Returns a shallow copy of headers used to authenticate other API call with the access token  """
     return dict({
-        "Content-type": content_type,
-        "Accept": accept,
-        "Authorization": "Bearer " + access_token
+        Headers.N_CONTENT_TYPE: content_type,
+        Headers.N_ACCEPT: accept,
+        Headers.N_AUTHORIZATION: "Bearer " + access_token
     })
 
 
 def _get_basic_token() -> str:
     """Get basic token from the IoT Connect and return it."""
-    # print(apiurl.ep_auth + "/Auth/basic-token")
-    response = request(apiurl.ep_auth, "/Auth/basic-token")
-    response.ensure_success()
-    basic_token = response.get_value("data")
+    headers = {
+        Headers.N_CONTENT_TYPE: Headers.V_APP_JSON,
+        Headers.N_ACCEPT: Headers.V_APP_JSON
+    }
+    response = request(apiurl.ep_auth, "/Auth/basic-token", headers=headers)
+    basic_token = response.body.get("data")
     # print("Basic token: " + basic_token)
     return basic_token
 
