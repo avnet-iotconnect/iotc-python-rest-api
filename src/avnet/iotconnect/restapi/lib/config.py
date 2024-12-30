@@ -8,6 +8,7 @@ import platformdirs
 CONFIG_VERSION = "1.0" # for future compatibility and potential conversion
 
 SECTION_DEFAULT = 'default'
+SECTION_SETTINGS = 'settings'
 SECTION_AUTH = 'authentication'
 
 _cp = configparser.ConfigParser()
@@ -43,7 +44,7 @@ def init() -> None:
 
     # override only if environment variable is not set
     if not api_trace_enabled:
-        api_trace_enabled = _cp.getboolean(SECTION_DEFAULT, "api-trace")
+        api_trace_enabled = _cp.has_section(SECTION_SETTINGS) and _cp.getboolean(SECTION_SETTINGS, "api-trace")
 
 
 def is_valid() -> bool:
@@ -53,6 +54,7 @@ def is_valid() -> bool:
 def write() -> bool:
     try:
         with open(_app_config_file, 'w') as app_config_file:
+            _cp.add_section(SECTION_DEFAULT)
             default = get_section(SECTION_DEFAULT)
             default.version = CONFIG_VERSION
             # PyCharm seems to get this wrong: Expected type 'SupportsWrite[str]', got 'TextIO' instead

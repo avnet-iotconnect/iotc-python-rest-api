@@ -5,8 +5,9 @@ import requests
 from requests.adapters import HTTPAdapter, Retry
 
 from . import config
-from . import credentials
 from .error import ResponseError, AuthError, MissingValueError, ApiException
+
+_get_auth_headers = None  # avoid circular dependency
 
 
 class Headers(dict[str, str]):
@@ -24,8 +25,7 @@ class Parser:
         self.value = value if value is not None else {}
 
     def get(self, expr: str = '*'):
-        result = jmespath.search(expr, self.value)
-        return result[0] if result is not None and len(result) == 1 else None
+        return jmespath.search(expr, self.value)
 
     def get_all(self, expr: str = '[*].*'):
         return jmespath.search(expr, self.value)
@@ -39,9 +39,9 @@ class Parser:
     @classmethod
     def field_names_query_component(cls, field_names: Optional[list[str]] = None):
         if field_names is None or len(field_names) == 0:
-            return ""
+            return "|[*]" # return full record
         else:
-            return "." + ",".join(field_names)
+            return ".{" + ",".join(field_names) + "}"  # return array of values
 
 
 class Response:
@@ -55,9 +55,11 @@ class Response:
             self.body = Parser(response.json())
             self.data = Parser(self.body.value.get("data"))
             if config.api_trace_enabled:
-                print("Response: status=%d value=%s" % (self.status, self.body.value))
+                print("Response: status=%d body=%s" % (self.status, self.body.value))
         except requests.exceptions.JSONDecodeError:
-            raise ApiException("Unable to parse the response")
+            if config.api_trace_enabled:
+                print("Raw Response:", response)
+            raise ApiException("API request failed. Status: %d (%s)" % (self.status, HTTPStatus(self.status).phrase))
 
     def ensure_success(self, codes_ok: list[int] = frozenset([HTTPStatus.OK])) -> None:
         """If status is bad - raise exception"""
@@ -68,9 +70,15 @@ class Response:
             if value_status is not None:
                 message = self.body.get('message')
                 if message is None:
-                    message = "The server returned HTTP code %d" % value_status
+                    message = "The server returned HTTP code %d." % value_status
                 else:
-                    message = 'Server reported message: "%s"' % message  # give a cleaner report
+                    message = 'Server reported message: "%s."' % message  # give a cleaner report
+                errors = self.body.get('error')
+                # try parse out errors:
+                if errors is not None and type(errors) is list:
+                    message += " Errors: "
+                    for e in errors:
+                        message += str(e) + " "
                 if value_status == 401:
                     raise AuthError(message)
                 else:
@@ -91,10 +99,15 @@ def request(endpoint: str, path: str, data: Optional[dict] = None, headers: dict
         print("%s%s data=%s" % (endpoint, path, traced_data))
 
     if headers is None:  # default headers
-        headers = credentials.get_auth_headers()
+        # avoid circular dependency
+        global _get_auth_headers
+        if _get_auth_headers is None:
+            from .credentials import get_auth_headers
+            _get_auth_headers = get_auth_headers
+        headers = _get_auth_headers()
 
     if method is None:  # figure out default method
-        if data is not None:
+        if data is not None or files is not None:
             method = HTTPMethod.POST
         else:
             method = HTTPMethod.GET

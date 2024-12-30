@@ -7,20 +7,16 @@ from .error import UsageError
 
 
 def query_all(query_str: str = '*', fields: Optional[list[str]] = None, single_value=False) -> Any:
-    response = request(apiurl.ep_user, "/Entity/lookup")
+    response = request(apiurl.ep_user, "/Device/lookup")
     if single_value:
         return response.data.get_or_raise('[%s]%s' % (query_str, Parser.field_names_query_component(fields)))
     else:
         return response.data.get_all('[%s]%s' % (query_str, Parser.field_names_query_component(fields)))
 
 
-def get_by_name(name, fields: list[str] = ("guid",)) -> str:
-    """Lookup an entity by name"""
-    if name is None:
-        raise UsageError('get_guid: The entity name argument is missing')
-    return query_all('?name == `%s`' % name, fields, single_value=True)
-
-
-def get_root_entity(fields: Optional[list[str]] = ("guid",)) -> str:
-    """Find root entity for the account"""
-    return query_all('?parentEntityGuid == null', fields, single_value=True)
+def get_by_duid(duid: str) -> Any:
+    """ Get device entry by device unique id (duid) """
+    if duid is None:
+        raise UsageError('get_by_duid: The device DUID argument is missing')
+    response = request(apiurl.ep_user, "/api/v2/Device/uniqueId/" + duid)
+    return response.data.get_or_raise('%s|[0]' % (Parser.field_names_query_component(fields)))

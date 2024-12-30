@@ -6,8 +6,7 @@ import sys
 import avnet.iotconnect.restapi.lib.credentials as credentials
 import avnet.iotconnect.restapi.lib.apiurl as apiurl
 import avnet.iotconnect.restapi.lib.entity as entity
-from avnet.iotconnect.restapi.lib.entity import query
-from avnet.iotconnect.restapi.lib.error import ResponseError, UsageError, ApiException
+from avnet.iotconnect.restapi.lib.error import UsageError, ApiException
 
 
 def init():
