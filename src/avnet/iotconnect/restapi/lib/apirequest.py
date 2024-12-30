@@ -1,7 +1,7 @@
-from http import HTTPStatus
+from http import HTTPStatus, HTTPMethod
 
-import requests
 import jmespath
+import requests
 from requests.adapters import HTTPAdapter, Retry
 
 from . import config
@@ -25,17 +25,24 @@ class Parser:
 
     def get(self, expr: str = '*'):
         result = jmespath.search(expr, self.value)
-        return result[0] if len(result) == 1 else None
+        return result[0] if result is not None and len(result) == 1 else None
 
     def get_all(self, expr: str = '[*].*'):
         return jmespath.search(expr, self.value)
-
 
     def get_or_raise(self, expr) -> Any:
         value = self.get(expr)
         if value is None:
             raise MissingValueError('Could not locate "%s" in the response' % expr)
         return value
+
+    @classmethod
+    def field_names_query_component(cls, field_names: Optional[list[str]] = None):
+        if field_names is None or len(field_names) == 0:
+            return ""
+        else:
+            return "." + ",".join(field_names)
+
 
 class Response:
     def __init__(self, response: requests.Response):
@@ -63,7 +70,7 @@ class Response:
                 if message is None:
                     message = "The server returned HTTP code %d" % value_status
                 else:
-                    message = 'Server reported message: "%s"' % message # give a cleaner report
+                    message = 'Server reported message: "%s"' % message  # give a cleaner report
                 if value_status == 401:
                     raise AuthError(message)
                 else:
@@ -71,23 +78,28 @@ class Response:
             else:
                 raise ResponseError("Bad HTTP response status: " + str(self.status))
 
-def request(endpoint: str, path: str, data: Optional[dict]=None, headers: dict[str, str] = None, allow_failure=False):
-    # print("data=%s" % data)
+
+def request(endpoint: str, path: str, data: Optional[dict] = None, headers: dict[str, str] = None, method: Optional[HTTPMethod] = None, allow_failure=False, files=None):
     s = requests.Session()
     retries = Retry(total=3, backoff_factor=0.1, status_forcelist=[500, 502, 503, 504])
     s.mount('https://', HTTPAdapter(max_retries=retries))
     if config.api_trace_enabled:
         traced_data = data
-        if isinstance(traced_data, dict) and traced_data.get('password') is not None: # do not print passwords
+        if isinstance(traced_data, dict) and traced_data.get('password') is not None:  # do not print passwords
             traced_data = dict(traced_data)
             traced_data['password'] = '*******'
         print("%s%s data=%s" % (endpoint, path, traced_data))
+
     if headers is None:  # default headers
         headers = credentials.get_auth_headers()
-    if data is not None:
-        response = Response(s.post(endpoint + path, json=data, headers=headers))
-    else:
-        response = Response(s.get(endpoint + path, json=data, headers=headers))
+
+    if method is None:  # figure out default method
+        if data is not None:
+            method = HTTPMethod.POST
+        else:
+            method = HTTPMethod.GET
+
+    response = Response(s.request(method, endpoint + path, json=data, headers=headers, files=files))
     if not allow_failure:
         response.ensure_success()
     return response
