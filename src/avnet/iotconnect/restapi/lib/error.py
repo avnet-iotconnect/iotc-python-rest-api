@@ -15,10 +15,10 @@ class ResponseError(ApiException):
     """ Custom exception for bad HTTP response status code """
     pass
 
-class UsageError(ValueError):
+class UsageError(ApiException):
     """ Incorrect usage. Missing argument etc. """
     pass
 
-class MissingValueError(ValueError):
-    """ Value is missing (typically from the response). """
+class SingleValueExpected(UsageError):
+    """ Incorrect usage. We expected a single value to be returned by the API, but got more than one. """
     pass

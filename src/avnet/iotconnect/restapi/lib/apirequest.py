@@ -1,11 +1,13 @@
+from dataclasses import make_dataclass, Field
 from http import HTTPStatus, HTTPMethod
+from typing import Optional, TypeVar, Union, Protocol, ClassVar, Any
 
 import jmespath
 import requests
 from requests.adapters import HTTPAdapter, Retry
 
 from . import config
-from .error import ResponseError, AuthError, MissingValueError, ApiException
+from .error import ResponseError, AuthError, ApiException, SingleValueExpected
 
 _get_auth_headers = None  # avoid circular dependency
 
@@ -16,32 +18,33 @@ class Headers(dict[str, str]):
     N_AUTHORIZATION = "Authorization"
     V_APP_JSON = "application/json"
 
+# Credit: intgr - stackoverflow example https://stackoverflow.com/questions/61736151/how-to-make-a-typevar-generic-type-in-python-with-dataclass-constraint
+class DataclassInstance(Protocol):
+    __dataclass_fields__: ClassVar[dict[str, Field[Any]]]
 
-from typing import Any, Optional
-
+T = TypeVar('T', bound=DataclassInstance)
 
 class Parser:
     def __init__(self, value: Optional[dict]):
-        self.value = value if value is not None else {}
+        self.value = value if value is not None else []
 
-    def get(self, expr: str = '*'):
-        return jmespath.search(expr, self.value)
-
-    def get_all(self, expr: str = '[*].*'):
-        return jmespath.search(expr, self.value)
-
-    def get_or_raise(self, expr) -> Any:
-        value = self.get(expr)
-        if value is None:
-            raise MissingValueError('Could not locate "%s" in the response' % expr)
-        return value
-
-    @classmethod
-    def field_names_query_component(cls, field_names: Optional[list[str]] = None):
-        if field_names is None or len(field_names) == 0:
-            return "|[*]" # return full record
+    def get(self, expr: Optional[str] = '[*]', dc: Optional[T] = None) -> Union[list[dict], list[T]]:
+        ret = jmespath.search(expr, self.value)
+        if dc is None:
+            return ret
         else:
-            return ".{" + ",".join(field_names) + "}"  # return array of values
+            object_list = []
+            for item in ret:
+                object_list.append(make_dataclass(dc.__name__, ((k, type(v)) for k, v in item.items()))(**item))
+            return object_list
+
+    def get_one(self, expr='[*]', dc: Optional[T] = None) -> Optional[Union[dict, T]]:
+        values = self.get(expr, dc)
+        if values is None or len(values) == 0:
+            return None
+        if len(values) > 1:
+            raise SingleValueExpected
+        return values[0]
 
 
 class Response:

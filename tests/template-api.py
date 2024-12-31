@@ -1,15 +1,24 @@
 import avnet.iotconnect.restapi.lib.template as template
+from avnet.iotconnect.restapi.lib.error import UsageError
 
-result = template.query_all()
+result = template.query()
 print('all=', result)
-result = template.get_by_template_code('test1234')
-print('code=', result)
-result = template.get_by_template_code('test1234', fields=['guid', 'name'])
-print('code=', result)
-# result = template.delete('a87cfb71-7b23-44e9-b4ea-fdf53f89393d')
-print('delete=', result)
-print('create=', template.create('sample-device-template.json', new_template_code="apidemo1", new_template_name="Python REST API example 1 from api.py "))
-#print('create=', template.create('sample-device-template.json', new_template_code="apidemo2", new_template_name="Python REST API example 2 from api.py "))
+result = template.get_by_template_code('apidemo1')
+print('get_by_template_code=', result)
+if result is not None:
+    template.delete_match_guid(result.guid)
+    print('Delete success')
+
+result = template.create('sample-device-template.json', new_template_code="apidemo1", new_template_name="ApiExample")
+print('create=', result)
+if result is not None:
+    template.delete_match_guid(result)
+    print('delete=', result)
+
+try:
+    template.delete_match_code('apidemo1')
+except UsageError as ex:
+    print("SUCCESS. Caught", ex)
 
 
 

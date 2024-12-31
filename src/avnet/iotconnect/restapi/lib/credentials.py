@@ -44,7 +44,6 @@ def authenticate(username: str, password: str, solution_key: str) -> None:
         raise UsageError('authenticate: The following arguments are missing: %s' % ", ".join(missing_args))
     basic_token = _get_basic_token()
     headers = {
-        Headers.N_CONTENT_TYPE: Headers.V_APP_JSON,
         Headers.N_ACCEPT: Headers.V_APP_JSON,
         Headers.N_AUTHORIZATION: 'Basic %s' % basic_token,
         "Solution-key": solution_key
@@ -86,10 +85,9 @@ def refresh() -> None:
     _save_config()
 
 
-def get_auth_headers(content_type=Headers.V_APP_JSON, accept=Headers.V_APP_JSON) -> dict[str, str]:
+def get_auth_headers(accept=Headers.V_APP_JSON) -> dict[str, str]:
     """  Helper: Returns a shallow copy of headers used to authenticate other API call with the access token  """
     return dict({
-        Headers.N_CONTENT_TYPE: content_type,
         Headers.N_ACCEPT: accept,
         Headers.N_AUTHORIZATION: "Bearer " + access_token
     })
