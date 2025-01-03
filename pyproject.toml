@@ -38,8 +38,9 @@ classifiers = [
 ]
 dependencies = [
     "requests>=2.32.3",
-    "platformdirs>=4.3.6"
+    "platformdirs>=4.3.6",
     "jmespath>=1.0.1",
+    "cryptography>=44.0.0"
 ]
 
 [project.urls]

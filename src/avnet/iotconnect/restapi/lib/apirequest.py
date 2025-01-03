@@ -46,6 +46,10 @@ class Parser:
             raise SingleValueExpected
         return values[0]
 
+    def get_object_value(self, expr) -> Any:
+        """ Return value from content that is not an array """
+        return jmespath.search(expr, self.value)
+
 
 class Response:
     def __init__(self, response: requests.Response):

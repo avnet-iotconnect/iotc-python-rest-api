@@ -9,6 +9,12 @@ from . import apiurl
 from .apirequest import request
 from .error import UsageError
 
+# Authentication types. See https://docs.iotconnect.io/iotconnect/sdk/message-protocol/device-message-2-1/reference-table/#authtypes
+AT_CA_SIGNED = 2
+AT_SELF_SIGNED = 3
+AT_TPM = 4
+AT_SYMMETRIC_KEY = 5
+AT_CA_INDIVIDUAL = 7
 
 @dataclass
 class Template:
@@ -51,6 +57,11 @@ def get_by_template_code(template_code: str) -> Optional[Template]:
         raise UsageError('get_by_template_code: The template code argument is missing')
     return query_expect_one(f"[?code==`{template_code}`]")
 
+def get_by_guid(guid: str) -> Optional[Template]:
+    """ Lookup a template by GUID """
+    if guid is None or len(guid) == 0:
+        raise UsageError('get_by_guid: The template guid argument is missing')
+    return query_expect_one(f"[?guid==`{guid}`]")
 
 def create(
         template_json_path: str,
@@ -109,7 +120,8 @@ def create_from_json_str(
         f = {"file": string_file}
         response = request(apiurl.ep_device, '/device-template/quick', files=f)
     ret = response.data.get_one()
-    return ret.get('deviceTemplateGuid') if ret is not None else None
+    # use upper() case because the returned guid is lower case, but it should be upper. Causes lookups to fail.
+    return ret.get('deviceTemplateGuid').upper() if ret is not None else None
 
 
 def delete_match_guid(guid: str) -> None:

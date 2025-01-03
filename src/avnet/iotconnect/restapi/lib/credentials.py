@@ -53,9 +53,9 @@ def authenticate(username: str, password: str, solution_key: str) -> None:
         "password": password
     }
     response = request(apiurl.ep_auth, "/Auth/login", data=data, headers=headers)
-    access_token = response.body.get_or_raise("access_token")
-    refresh_token = response.body.get_or_raise("refresh_token")
-    expires_in = response.body.get_or_raise("expires_in")
+    access_token = response.body.get_object_value("access_token")
+    refresh_token = response.body.get_object_value("refresh_token")
+    expires_in = response.body.get_object_value("expires_in")
     _token_time = _ts_now()
     _token_expiry = _token_time + expires_in
     # print("refresh token: " + refresh_token)

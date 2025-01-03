@@ -1,26 +1,35 @@
 """This module provides IoTConnect authentication functionality."""
-from typing import Optional, Any
+from dataclasses import dataclass
 
 from . import apiurl
-from .apirequest import request, Parser
+from .apirequest import request
 from .error import UsageError
 
 
-def query_all(query_str: str = '*', fields: Optional[list[str]] = None, single_value=False) -> Any:
+@dataclass
+class Entity:
+    guid: str
+    name: str
+    parentEntityGuid: str
+
+
+def query(query_str: str = '[*]') -> list[Entity]:
     response = request(apiurl.ep_user, "/Entity/lookup")
-    if single_value:
-        return response.data.get_or_raise('[%s]%s' % (query_str, Parser.field_names_query_component(fields)))
-    else:
-        return response.data.get_all('[%s]%s' % (query_str, Parser.field_names_query_component(fields)))
+    return response.data.get(query_str, dc=Entity)
 
 
-def get_by_name(name, fields: list[str] = ("guid",)) -> str:
+def query_expect_one(query_str: str = '[*]') -> Entity:
+    response = request(apiurl.ep_user, '/Entity/lookup')
+    return response.data.get_one(query_str, dc=Entity)
+
+
+def get_by_name(name) -> Entity:
     """Lookup an entity by name"""
     if name is None:
-        raise UsageError('get_guid: The entity name argument is missing')
-    return query_all('?name == `%s`' % name, fields, single_value=True)
+        raise UsageError('get_by_name: The entity name argument is missing')
+    return query_expect_one(f"[?name==`{name}`]")
 
 
-def get_root_entity(fields: Optional[list[str]] = ("guid",)) -> str:
+def get_root_entity() -> Entity:
     """Find root entity for the account"""
-    return query_all('?parentEntityGuid == null', fields, single_value=True)
+    return query_expect_one('[?parentEntityGuid == null]')

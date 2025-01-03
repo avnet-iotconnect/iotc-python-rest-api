@@ -54,7 +54,8 @@ def is_valid() -> bool:
 def write() -> bool:
     try:
         with open(_app_config_file, 'w') as app_config_file:
-            _cp.add_section(SECTION_DEFAULT)
+            if not _cp.has_section(SECTION_DEFAULT):
+                _cp.add_section(SECTION_DEFAULT)
             default = get_section(SECTION_DEFAULT)
             default.version = CONFIG_VERSION
             # PyCharm seems to get this wrong: Expected type 'SupportsWrite[str]', got 'TextIO' instead

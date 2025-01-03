@@ -5,7 +5,6 @@ import sys
 
 import avnet.iotconnect.restapi.lib.credentials as credentials
 import avnet.iotconnect.restapi.lib.apiurl as apiurl
-import avnet.iotconnect.restapi.lib.entity as entity
 from avnet.iotconnect.restapi.lib.error import UsageError, ApiException
 
 
@@ -48,13 +47,6 @@ def init():
             """
         ap.description = description
 
-    def _register_entity(ap: argparse.ArgumentParser) -> None:
-        description = \
-            """ 
-            Query account entities.
-            """
-        ap.description = description
-
     def _process_configure(a: argparse.Namespace) -> None:
         apiurl.configure(apiurl.default_endpoint_mapper(a.platform, a.env))
         credentials.authenticate(username=a.username, password=a.password, solution_key=a.skey)
@@ -62,52 +54,7 @@ def init():
     def _process_refresh(a: argparse.Namespace) -> None:
         credentials.refresh()
 
-    def _process_entity(a: argparse.Namespace) -> None:
-        def _register_get(ap: argparse.ArgumentParser) -> None:
-            description = \
-                """ 
-                Get one or more entities. If a single value is returned, it will be returned as a string. Otherwise JSON will be returned.        
-                """
-            ap.description = description
-            ap.add_argument("-f", "--fields", dest="fields", nargs='+', default=None, help="Fields to return. By default all fields are returned")
-            q = ap.add_mutually_exclusive_group()
-            q.add_argument("-n", "--name", dest="name", default=None, help="Filter by name.")
-            q.add_argument("-g", "--guid", dest="guid", default=None, help="Filter by GUID.")
-            q.add_argument("-q", "--query", dest="query", default="*", help='Custom jmespath query (default="*").')
 
-        def _register_get_root(ap: argparse.ArgumentParser) -> None:
-            ap.description = "Get root entity of the account."
-            ap.add_argument("-f", "--fields", dest="fields", nargs='+', default=None, help="Fields to return. By default all fields are returned")
-            q = ap.add_mutually_exclusive_group()
-            q.add_argument("-n", "--name", dest="name", default=None, help="Filter by name.")
-            q.add_argument("-g", "--guid", dest="guid", default=None, help="Filter by GUID.")
-            q.add_argument("-q", "--query", dest="query", default="*", help='Custom jmespath query (default="*").')
-
-        def _process_get(a: argparse.Namespace) -> None:
-            query_str = "*"
-            if a.name is not None:
-                query_str="?name=`%s`" % a.name
-            if a.guid is not None:
-                query_str="?guid=`%s`" % a.guid
-            if a.query is not None:
-                query_str = a.query
-            result = entity.query(query_str=query_str, fields=a.fields)
-            if type(result) is str:
-                print(result)
-            else:
-                print(json.dumps(result))
-
-        def _process_get_root(a: argparse.Namespace) -> None:
-           print(entity.get_root_entity(fields=a.fields))
-
-        sp = parser.add_subparsers(title="commands", description="Available subcommands", dest="command")
-        sp.required = True
-        sp = subparsers.add_parser('get')
-        sp.set_defaults(func=_process_get)
-        _register_get(sp)
-        sp = subparsers.add_parser('get-root')
-        subparser.set_defaults(func=_process_get_root)
-        _register_get_root(sp)
 
     main_description = \
         """ 
@@ -136,9 +83,6 @@ def process(argv):
     except ApiException as ex:
         print(ex)
         sys.exit(1)
-    except UsageError as ex:
-        print(ex)
-        sys.exit(2)
 
 
 _parser = init()

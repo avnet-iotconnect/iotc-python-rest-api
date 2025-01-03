@@ -4,7 +4,7 @@ from avnet.iotconnect.restapi.lib.credentials import authenticate, refresh
 import avnet.iotconnect.restapi.lib.entity as entity
 import avnet.iotconnect.restapi.lib.template as template
 
-#authenticate(os.environ['IOTC_USER'], os.environ['IOTC_PASS'], os.environ['IOTC_SKEY'])
+authenticate(os.environ['IOTC_USER'], os.environ['IOTC_PASS'], os.environ['IOTC_SKEY'])
 #refresh()
 print('Guid=', entity.get_by_name("Americas"))
 print('All=', entity.query_all())
