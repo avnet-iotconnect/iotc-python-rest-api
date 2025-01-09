@@ -20,18 +20,14 @@ AT_CA_INDIVIDUAL = 7
 @dataclass
 class Template:
     guid: str
-    code: str
-    name: str
+    templateCode: str
+    templateName: str
     isEdgeSupport: bool
     isIotEdgeEnable: bool
     authType: int
-    isType2Support: bool
     tag: str
-    isSolutionTemplate: bool
-    solutionName: bool
     messageVersion: str
     greenGrass: bool
-    wirelessDevice: bool
 
 
 @dataclass
@@ -49,13 +45,13 @@ def _validate_template_code(code: str):
 
 
 def query(query_str: str = '[*]') -> list[Template]:
-    response = request(apiurl.ep_device, '/device-template/lookup')
+    response = request(apiurl.ep_device, '/device-template')
 
     return response.data.get(query_str, dc=Template)
 
 
 def query_expect_one(query_str: str = '[*]') -> Optional[Template]:
-    response = request(apiurl.ep_device, '/device-template/lookup')
+    response = request(apiurl.ep_device, '/device-template')
     return response.data.get_one(query_str, dc=Template)
 
 
@@ -72,7 +68,7 @@ def get_by_template_code(template_code: str) -> Optional[Template]:
 #    return query_expect_one(f"[?code==`{template_code}`]")
     try:
         response = request(apiurl.ep_device, f'/device-template/template-code/{template_code}')
-        return response.data.get(dc=Template)
+        return response.data.get_one(dc=Template)
     except ResponseError:
         return None
 

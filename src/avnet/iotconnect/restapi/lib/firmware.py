@@ -1,20 +1,12 @@
 """This module provides IoTConnect authentication functionality."""
-import io
-import json
 from dataclasses import dataclass
-from http import HTTPMethod
+from http import HTTPMethod, HTTPStatus
 from typing import Optional
 
-from . import apiurl
+from . import apiurl, upgrade
 from .apirequest import request
 from .error import UsageError
 
-# Authentication types. See https://docs.iotconnect.io/iotconnect/sdk/message-protocol/device-message-2-1/reference-table/#authtypes
-AT_CA_SIGNED = 2
-AT_SELF_SIGNED = 3
-AT_TPM = 4
-AT_SYMMETRIC_KEY = 5
-AT_CA_INDIVIDUAL = 7
 
 @dataclass
 class Firmware:
@@ -36,14 +28,6 @@ def _validate_firmware_name(firmware_name: str):
     elif not firmware_name.isalnum() or firmware_name.upper() != firmware_name:
         raise UsageError('"firmware_name" parameter must be upper case and contain only alphanumeric characters')
 
-def _validate_version(version: str, what: str):
-    if version is None:
-        raise UsageError(f'"{what}" parameter must not be None')
-    elif len(version) > 20 or len(version) == 0:
-        raise UsageError(f'"{what}" parameter must be between 1 and 20 characters')
-    elif all(x.isalnum() for x in version.split('.')):
-        raise UsageError(f'"{what}" parameter must contain only alphanumeric characters or periods')
-
 
 def query(query_str: str = '[*]') -> list[Firmware]:
     response = request(apiurl.ep_firmware, '/Firmware')
@@ -59,7 +43,8 @@ def get_by_name(name: str) -> Optional[Firmware]:
     """ Lookup a firmware name - unique template ID supplied during creation """
     if name is None or len(name) == 0:
         raise UsageError('get_by_name: The firmware name is missing')
-    return query_expect_one(f"[?name==`{name}`]")
+    response = request(apiurl.ep_firmware, '/Firmware', params={"Name": name}, codes_ok=[HTTPStatus.NO_CONTENT])
+    return response.data.get_one(dc=Firmware)
 
 
 def get_by_guid(guid: str) -> Optional[Firmware]:
@@ -73,38 +58,47 @@ def create(
         template_guid: str,
         name: str,
         hw_version: str,
-#        sw_version: str,
-#        fw_file: str,
+        initial_sw_version: str,
         description: Optional[str] = None,
-) -> Optional[str]:
+        upgrade_description: Optional[str] = None,
+) -> FirmwareCreateResult:
     """
     Creates a firmware entry in IoTconnect. Firmware is associated with a template and can have different versions of
     firmware upgrades that can be uploaded and that are associated with it.
+    When creating a firmware entry, an initial firmware upgrade version is required.
 
     :param template_guid: GUID of the device template.
     :param name: Name of this template. This code must be uppercase alphanumeric an up to 10 characters in length.
     :param hw_version: Hardware Version of the firmware.
-    :param hw_version: Hardware Version of the software.
+    :param initial_sw_version: Hardware Version of the software.
     :param description: Optional description that can be added to the firmware.
+    :param upgrade_description: Optional description that can be added to the firmware upgrade.
 
-    :return: GUID of the newly created template
+    :return: FirmwareCreateResult with new Firmware GUID and Firmware Upgrade GUID that was newly created.
     """
 
     _validate_firmware_name(name)
-    _validate_version('hw_version', name)
+    if hw_version is not None:
+        # noinspection PyProtectedMember
+        upgrade._validate_version('hw_version', hw_version)
+    if initial_sw_version is not None:
+        # noinspection PyProtectedMember
+        upgrade._validate_version('initial_sw_version', initial_sw_version)
     data = {
         "deviceTemplateGuid": template_guid,
         "firmwareName": name,
         "hardware": hw_version,
-        "software": "dummy"
+        "software": initial_sw_version
     }
     if description is not None:
         data["FirmwareDescription"] = description
+    if upgrade_description is not None:
+        data["firmwareUpgradeDescription"] = description
 
     response = request(apiurl.ep_firmware, '/Firmware', data=data)
     return response.data.get_one(dc=FirmwareCreateResult)
 
-def delete_match_guid(guid: str) -> None:
+def deprecate_match_guid(guid: str) -> None:
     """
     Delete the firmware with given template guid.
 
@@ -116,11 +110,11 @@ def delete_match_guid(guid: str) -> None:
     response.data.get_one()  # we expect data to be empty -- 'data': [] on success
 
 
-def delete_match_name(name: str) -> None:
+def deprecate_match_name(name: str) -> None:
     """
-    Delete the firmware with given template code.
+    Delete the firmware with given the name.
 
-    :param name: Name of the template to delete.
+    :param name: Name of the firmware to delete.
     """
     if name is None:
         raise UsageError('delete_match_name: The firmware name argument is missing')
@@ -128,5 +122,5 @@ def delete_match_name(name: str) -> None:
     fw = get_by_name(name)
     if fw is None:
         raise UsageError(f'delete_match_name: Firmware with name "{name}" not found')
-    delete_match_guid(fw.guid)
+    deprecate_match_guid(fw.guid)
 

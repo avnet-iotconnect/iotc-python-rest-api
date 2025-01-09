@@ -4,7 +4,6 @@ from typing import Optional, TypeVar, Union, Protocol, ClassVar, Any
 
 import jmespath
 import requests
-from requests.adapters import HTTPAdapter, Retry
 from requests.exceptions import RetryError
 
 from . import config
@@ -19,11 +18,14 @@ class Headers(dict[str, str]):
     N_AUTHORIZATION = "Authorization"
     V_APP_JSON = "application/json"
 
+
 # Credit: intgr - stackoverflow example https://stackoverflow.com/questions/61736151/how-to-make-a-typevar-generic-type-in-python-with-dataclass-constraint
 class DataclassInstance(Protocol):
     __dataclass_fields__: ClassVar[dict[str, Field[Any]]]
 
+
 T = TypeVar('T', bound=DataclassInstance)
+
 
 class Parser:
     def __init__(self, value: Optional[dict]):
@@ -73,13 +75,19 @@ class Response:
         except requests.exceptions.JSONDecodeError:
             if config.api_trace_enabled:
                 print("Raw Response:", response)
-            raise ApiException("API request failed. Status: %d (%s)" % (self.status, HTTPStatus(self.status).phrase))
+            if self.status != HTTPStatus.NO_CONTENT:
+                raise ApiException("API request failed. Status: %d (%s)" % (self.status, HTTPStatus(self.status).phrase), self.status)
+            else:
+                self.body.value = []
 
-    def ensure_success(self, codes_ok: list[int] = frozenset([HTTPStatus.OK])) -> None:
+    def ensure_success(self, codes_ok: Optional[list[int]] = None) -> None:
         """If status is bad - raise exception"""
-        if self.status not in codes_ok:
-            if len(self.body.value) == 0:
-                raise ResponseError("Unable to obtain response")
+        acceptable_codes = [HTTPStatus.OK]
+        if codes_ok is not None:
+            acceptable_codes.extend(codes_ok)
+        if self.status not in acceptable_codes:
+#            if len(self.body.value) == 0:
+#                raise ResponseError("Unable to obtain response", self.status)
             value_status = self.body.get('status')
             if value_status is not None:
                 message = self.body.get('message')
@@ -93,18 +101,28 @@ class Response:
                     message += " Errors: "
                     for e in errors:
                         message += str(e) + " "
-                if value_status == 401:
-                    raise AuthError(message)
+                if self.status == 401:
+                    raise AuthError(message, self.status)
                 else:
-                    raise ResponseError(message)
+                    raise ResponseError(message, self.status)
             else:
-                raise ResponseError("Bad HTTP response status: " + str(self.status))
+                raise ResponseError("Bad HTTP response status: " + str(self.status), self.status)
 
 
-def request(endpoint: str, path: str, data: Optional[dict] = None, params: Optional[dict] = None, headers: dict[str, str] = None, method: Optional[HTTPMethod] = None, allow_failure=False, files=None):
-    #s = requests.Session()
-    #retries = Retry(total=3, backoff_factor=0.1, status_forcelist=[500, 502, 503, 504])
-    #s.mount('https://', HTTPAdapter(max_retries=retries))
+def request(
+        endpoint: str,
+        path: str,
+        data: Optional[dict] = None,
+        params: Optional[dict] = None,
+        headers: dict[str, str] = None,
+        method: Optional[HTTPMethod] = None,
+        allow_failure=False,
+        files=None,
+        codes_ok = frozenset([HTTPStatus.OK])
+):
+    # s = requests.Session()
+    # retries = Retry(total=3, backoff_factor=0.1, status_forcelist=[500, 502, 503, 504])
+    # s.mount('https://', HTTPAdapter(max_retries=retries))
 
     if headers is None:  # default headers
         # avoid circular dependency
@@ -130,7 +148,7 @@ def request(endpoint: str, path: str, data: Optional[dict] = None, params: Optio
     try:
         response = Response(requests.request(method, endpoint + path, json=data, params=params, headers=headers, files=files))
         if not allow_failure:
-            response.ensure_success()
+            response.ensure_success(codes_ok=codes_ok)
         return response
     except RetryError as ex:
         raise

@@ -1,47 +1,52 @@
-from avnet.iotconnect.restapi.lib import firmware
+from avnet.iotconnect.restapi.lib import firmware, upgrade
 import avnet.iotconnect.restapi.lib.template as template
 from avnet.iotconnect.restapi.lib.error import UsageError
 
-#result = template.query("[?starts_with(code,`a`)]")
-#print('query=', result)
+# result = template.query("[?starts_with(code,`a`)]")
+# print('query=', result)
+
+TEMPLATE_CODE = 'apidemo1'
+FIRMWARE_NAME = 'APIDEMO1FW'
 
 try:
-    firmware.delete_match_name("APIDEMO1FW")
+    firmware.deprecate_match_name(FIRMWARE_NAME)
 except UsageError as ex:
     print("Firmware originally not found")
 
-t = template.get_by_template_code('apidemo1')
-print('get_by_template_code=', t)
+t = template.get_by_template_code(TEMPLATE_CODE)
+print(t)
 if t is not None:
-    result = template.get_by_guid(t.guid)
-    print('get_by_guid=', result)
+    print('get_by_template_code=', t.templateCode)
+    print('get_by_guid=', template.get_by_guid(t.guid))
     template.delete_match_guid(t.guid)
     print('Delete success')
 
+template_create_result = template.create('sample-device-template.json', new_template_code=TEMPLATE_CODE, new_template_name="ApiExample")
+print('create=', template_create_result)
+template_guid = template_create_result.deviceTemplateGuid
 
-result = template.create('sample-device-template.json', new_template_code="apidemo1", new_template_name="ApiExample")
-print('create=', result)
+firmware_create_result = firmware.create(template_guid=template_guid, name=FIRMWARE_NAME, hw_version="1.0", initial_sw_version="0.0", description="Initial version")
+print(firmware_create_result)
+print('firmware.get_by_name', firmware.get_by_name(FIRMWARE_NAME))
+print('firmware.get_by_guid', firmware.get_by_guid(firmware_create_result.newId))
 
-print(firmware.query())
-print(firmware.get_by_name("APIDEMO1FW"))
+upgrade.upload(firmware_create_result.firmwareUpgradeGuid, 'test.txt')
+upgrade.publish(firmware_create_result.firmwareUpgradeGuid)
 
+new_upgrade_create_result = upgrade.create(firmware_guid=firmware_create_result.firmwareUpgradeGuid, sw_version= "1.0")
 
-result = firmware.create(template_guid=t.guid, name="APIDEMO1FW", hw_version="1.0")
-print(result)
+upgrade.upload(new_upgrade_create_result.newId, 'test.txt')
+
+upgrade.delete_match_guid(new_upgrade_create_result.newId)
+upgrade.delete_match_guid(firmware_create_result.firmwareUpgradeGuid)
+
 
 try:
-    firmware.delete_match_name('APIDEMO1FW')
+    firmware.deprecate_match_name(FIRMWARE_NAME)
 except UsageError as ex:
     print("SUCCESS. Caught", ex)
 
-
-template.delete_match_guid(t.guid)
-
 try:
-    template.delete_match_code('apidemo1')
+    template.delete_match_code(TEMPLATE_CODE)
 except UsageError as ex:
     print("SUCCESS. Caught", ex)
-
-
-
-
