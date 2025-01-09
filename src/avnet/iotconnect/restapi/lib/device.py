@@ -22,12 +22,12 @@ class Device:
 
 
 def query(query_str: str = '[*]') -> list[Device]:
-    response = request(apiurl.ep_device, "/Device/lookup")
+    response = request(apiurl.ep_device, "/Device")
     return response.data.get(query_str, dc=Device)
 
 
 def query_expect_one(query_str: str = '[*]') -> Device:
-    response = request(apiurl.ep_device, '/Device/lookup')
+    response = request(apiurl.ep_device, '/Device')
     return response.data.get_one(query_str, dc=Device)
 
 
@@ -74,6 +74,9 @@ def create(
         "displayName": name or duid,
         "entityGuid": entity_guid
     }
+
+    if device_certificate is not None:
+        data['certificateText'] = device_certificate
 
     # if auto_generate:
     #    data['autoGenerate'] = True

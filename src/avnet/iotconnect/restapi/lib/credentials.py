@@ -42,6 +42,8 @@ def authenticate(username: str, password: str, solution_key: str) -> None:
         missing_args.append("Solution Key")
     if len(missing_args):
         raise UsageError('authenticate: The following arguments are missing: %s' % ", ".join(missing_args))
+    if config.api_trace_enabled:
+        print(f"Solution Key: {solution_key}")
     basic_token = _get_basic_token()
     headers = {
         Headers.N_ACCEPT: Headers.V_APP_JSON,

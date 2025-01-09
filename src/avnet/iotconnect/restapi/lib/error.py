@@ -13,6 +13,7 @@ class AuthError(ApiException):
 
 class ResponseError(ApiException):
     """ Custom exception for bad HTTP response status code """
+    # def __init__(self, code, message):
     pass
 
 class UsageError(ApiException):
@@ -21,4 +22,8 @@ class UsageError(ApiException):
 
 class SingleValueExpected(UsageError):
     """ Incorrect usage. We expected a single value to be returned by the API, but got more than one. """
+    pass
+
+class ValueExpected(UsageError):
+    """ Incorrect usage. We expected a value to be obtainable from the response. """
     pass

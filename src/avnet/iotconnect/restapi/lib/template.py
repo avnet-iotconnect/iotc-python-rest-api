@@ -7,7 +7,7 @@ from typing import Optional
 
 from . import apiurl
 from .apirequest import request
-from .error import UsageError
+from .error import UsageError, ResponseError
 
 # Authentication types. See https://docs.iotconnect.io/iotconnect/sdk/message-protocol/device-message-2-1/reference-table/#authtypes
 AT_CA_SIGNED = 2
@@ -15,6 +15,7 @@ AT_SELF_SIGNED = 3
 AT_TPM = 4
 AT_SYMMETRIC_KEY = 5
 AT_CA_INDIVIDUAL = 7
+
 
 @dataclass
 class Template:
@@ -33,6 +34,11 @@ class Template:
     wirelessDevice: bool
 
 
+@dataclass
+class TemplateCreateResult:
+    deviceTemplateGuid: str
+
+
 def _validate_template_code(code: str):
     if code is None:
         raise UsageError('"code" parameter must not be None')
@@ -44,18 +50,32 @@ def _validate_template_code(code: str):
 
 def query(query_str: str = '[*]') -> list[Template]:
     response = request(apiurl.ep_device, '/device-template/lookup')
+
     return response.data.get(query_str, dc=Template)
 
-def query_expect_one(query_str: str = '[*]') ->  Optional[Template]:
+
+def query_expect_one(query_str: str = '[*]') -> Optional[Template]:
     response = request(apiurl.ep_device, '/device-template/lookup')
     return response.data.get_one(query_str, dc=Template)
 
 
+def get(params: dict[str, any]) -> Template:
+    response = request(apiurl.ep_device, '/device-template', params=params)
+    return response.data.get_one(dc=Template)
+
+
 def get_by_template_code(template_code: str) -> Optional[Template]:
     """ Lookup an template by template code - unique template ID supplied during creation """
-    if template_code is None or len(template_code) == 0:
-        raise UsageError('get_by_template_code: The template code argument is missing')
-    return query_expect_one(f"[?code==`{template_code}`]")
+    _validate_template_code(template_code)
+#    if template_code is None or len(template_code) == 0:
+#        raise UsageError('get_by_template_code: The template code argument is missing')
+#    return query_expect_one(f"[?code==`{template_code}`]")
+    try:
+        response = request(apiurl.ep_device, f'/device-template/template-code/{template_code}')
+        return response.data.get(dc=Template)
+    except ResponseError:
+        return None
+
 
 def get_by_guid(guid: str) -> Optional[Template]:
     """ Lookup a template by GUID """
@@ -63,12 +83,13 @@ def get_by_guid(guid: str) -> Optional[Template]:
         raise UsageError('get_by_guid: The template guid argument is missing')
     return query_expect_one(f"[?guid==`{guid}`]")
 
+
 def create(
         template_json_path: str,
         new_template_code: Optional[str] = None,
         new_template_name: Optional[str] = None
 
-) -> Optional[str]:
+) -> TemplateCreateResult:
     """
     Same as create_from_json_str(), but reads a file from the filesystem located at template_json_path
 
@@ -76,7 +97,7 @@ def create(
     :param new_template_code: Optional new template code to use. This code must be alphanumeric an up to 10 characters in length.
     :param new_template_name: Optional new template name to use.
 
-    :return: GUID of the newly created template
+    :return: TemplateCreateResult with newId populated with guid of the newly created template
     """
     try:
         with open(template_json_path, 'r') as template_file:
@@ -90,7 +111,7 @@ def create_from_json_str(
         template_json_string: str,
         new_template_code: Optional[str] = None,
         new_template_name: Optional[str] = None
-) -> Optional[str]:
+) -> TemplateCreateResult:
     """
     Create a device template by using a device template json definition as string.
     This variant of the create method allows the user to select a new template code and/or name.
@@ -100,7 +121,7 @@ def create_from_json_str(
     :param new_template_code: Optional new template code to use. This code must be alphanumeric an up to 10 characters in length.
     :param new_template_name: Optional new template name to use.
 
-    :return: GUID of the newly created template
+    :return: TemplateCreateResult with newId populated with guid of the newly created template
     """
 
     try:
@@ -109,19 +130,21 @@ def create_from_json_str(
         raise UsageError(ex)
 
     if new_template_code is not None:
+        _validate_template_code(new_template_code)
         template_obj["code"] = new_template_code
     if new_template_name is not None:
         template_obj["name"] = new_template_name
 
     # now back to converting it into a file for the upload
     with io.StringIO() as string_file:
-        string_file.write(json.dumps(template_obj, separators=(',', ':'))) # separators = compress the json
-        string_file.seek(0) # reset the file pointer after writing
+        string_file.write(json.dumps(template_obj, separators=(',', ':')))  # separators = compress the json
+        string_file.seek(0)  # reset the file pointer after writing
         f = {"file": string_file}
         response = request(apiurl.ep_device, '/device-template/quick', files=f)
-    ret = response.data.get_one()
-    # use upper() case because the returned guid is lower case, but it should be upper. Causes lookups to fail.
-    return ret.get('deviceTemplateGuid').upper() if ret is not None else None
+    res = response.data.get_one(dc=TemplateCreateResult)
+    if res is not None and res.deviceTemplateGuid is not None:
+        res.deviceTemplateGuid = res.deviceTemplateGuid.upper()
+    return res
 
 
 def delete_match_guid(guid: str) -> None:
@@ -132,8 +155,8 @@ def delete_match_guid(guid: str) -> None:
     """
     if guid is None:
         raise UsageError('delete_match_guid: The template guid argument is missing')
-    response = request(apiurl.ep_device, '/device-template/' + guid, method=HTTPMethod.DELETE)
-    response.data.get_one() # we expect data to be empty -- 'data': [] on success
+    response = request(apiurl.ep_device, f'/device-template/{guid}', method=HTTPMethod.DELETE)
+    response.data.get_one()  # we expect data to be empty -- 'data': [] on success
 
 
 def delete_match_code(code: str) -> None:
@@ -142,9 +165,9 @@ def delete_match_code(code: str) -> None:
 
     :param code: Template code of the template to delete.
     """
-    _validate_template_code(code)
     if code is None:
         raise UsageError('delete_match_code: The template code argument is missing')
+    _validate_template_code(code)
     t = get_by_template_code(code)
     if t is None:
         raise UsageError(f'delete_match_code: Template with code "{code}" not found')

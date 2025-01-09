@@ -5,9 +5,10 @@ from typing import Optional, TypeVar, Union, Protocol, ClassVar, Any
 import jmespath
 import requests
 from requests.adapters import HTTPAdapter, Retry
+from requests.exceptions import RetryError
 
 from . import config
-from .error import ResponseError, AuthError, ApiException, SingleValueExpected
+from .error import ResponseError, AuthError, ApiException, SingleValueExpected, ValueExpected
 
 _get_auth_headers = None  # avoid circular dependency
 
@@ -45,6 +46,12 @@ class Parser:
         if len(values) > 1:
             raise SingleValueExpected
         return values[0]
+
+    def get_or_raise(self, expr='[*]', dc: Optional[T] = None) -> Optional[Union[dict, T]]:
+        ret = self.get_one(self, expr, dc)
+        if ret is None:
+            raise ValueExpected
+        return ret
 
     def get_object_value(self, expr) -> Any:
         """ Return value from content that is not an array """
@@ -94,16 +101,10 @@ class Response:
                 raise ResponseError("Bad HTTP response status: " + str(self.status))
 
 
-def request(endpoint: str, path: str, data: Optional[dict] = None, headers: dict[str, str] = None, method: Optional[HTTPMethod] = None, allow_failure=False, files=None):
-    s = requests.Session()
-    retries = Retry(total=3, backoff_factor=0.1, status_forcelist=[500, 502, 503, 504])
-    s.mount('https://', HTTPAdapter(max_retries=retries))
-    if config.api_trace_enabled:
-        traced_data = data
-        if isinstance(traced_data, dict) and traced_data.get('password') is not None:  # do not print passwords
-            traced_data = dict(traced_data)
-            traced_data['password'] = '*******'
-        print("%s%s data=%s" % (endpoint, path, traced_data))
+def request(endpoint: str, path: str, data: Optional[dict] = None, params: Optional[dict] = None, headers: dict[str, str] = None, method: Optional[HTTPMethod] = None, allow_failure=False, files=None):
+    #s = requests.Session()
+    #retries = Retry(total=3, backoff_factor=0.1, status_forcelist=[500, 502, 503, 504])
+    #s.mount('https://', HTTPAdapter(max_retries=retries))
 
     if headers is None:  # default headers
         # avoid circular dependency
@@ -119,7 +120,17 @@ def request(endpoint: str, path: str, data: Optional[dict] = None, headers: dict
         else:
             method = HTTPMethod.GET
 
-    response = Response(s.request(method, endpoint + path, json=data, headers=headers, files=files))
-    if not allow_failure:
-        response.ensure_success()
-    return response
+    if config.api_trace_enabled:
+        traced_data = data
+        if isinstance(traced_data, dict) and traced_data.get('password') is not None:  # do not print passwords
+            traced_data = dict(traced_data)
+            traced_data['password'] = '*******'
+        print("%s %s%s data=%s params=%s" % (method, endpoint, path, traced_data, params))
+
+    try:
+        response = Response(requests.request(method, endpoint + path, json=data, params=params, headers=headers, files=files))
+        if not allow_failure:
+            response.ensure_success()
+        return response
+    except RetryError as ex:
+        raise
