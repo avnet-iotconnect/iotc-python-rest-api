@@ -4,8 +4,8 @@ from dataclasses import dataclass
 from http import HTTPMethod
 from typing import Optional
 
-from . import apiurl
-from .apirequest import request
+from . import apiurl, credentials
+from .apirequest import request, Headers
 from .error import UsageError
 
 
@@ -86,7 +86,7 @@ def create(
     if description is not None:
         data["description"] = description
 
-    response = request(apiurl.ep_firmware, '/firmware-upgrade', data=data)
+    response = request(apiurl.ep_firmware, '/firmware-upgrade', json=data)
     return response.data.get_one(dc=UpgradeCreateResult)
 
 
@@ -96,7 +96,8 @@ def upload(upgrade_guid: str, file_path: str, file_name: Optional[str] = None, f
     Call upgrade.create() or firmware.create() first to obtain the firmware upgrade GUID.
 
     :param upgrade_guid: GUID of the firmware upgrade created by upgrade.create() or firmware.create()
-    :param file: Path to the file to upload.
+    :param file_path: Path to the file to upload.
+    :param file_name: Optional file name what will be used instead of the file name provided in file_path. This file name will be presented to the device with OTA update.
     :param file_open_mode: The mode to pen the file in. Binary by default. Using text mode could eliminate platform dependent newline encoding.
 
     """
@@ -106,13 +107,14 @@ def upload(upgrade_guid: str, file_path: str, file_name: Optional[str] = None, f
 
     with open(file_path, file_open_mode) as f:
         fw_file = {
-            'fileData': (file_name, f)
+            'fileData': f
         }
-
         data = {
             'fileRefGuid': upgrade_guid,
             'ModuleType': 'firmware',
         }
+        headers = credentials.get_auth_headers()
+        del headers[Headers.N_ACCEPT]
         response = request(apiurl.ep_file, '/File', method=HTTPMethod.POST, files=fw_file, data=data)
         return response.data.get_one(dc=UploadResult)
 

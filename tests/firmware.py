@@ -27,18 +27,22 @@ template_guid = template_create_result.deviceTemplateGuid
 
 firmware_create_result = firmware.create(template_guid=template_guid, name=FIRMWARE_NAME, hw_version="1.0", initial_sw_version="0.0", description="Initial version")
 print(firmware_create_result)
+fw_00_guid=firmware_create_result.firmwareUpgradeGuid
 print('firmware.get_by_name', firmware.get_by_name(FIRMWARE_NAME))
 print('firmware.get_by_guid', firmware.get_by_guid(firmware_create_result.newId))
 
-upgrade.upload(firmware_create_result.firmwareUpgradeGuid, 'test.txt')
+upgrade.upload(firmware_create_result.firmwareUpgradeGuid, 'test.zip', file_name="x.foo")
 upgrade.publish(firmware_create_result.firmwareUpgradeGuid)
 
-new_upgrade_create_result = upgrade.create(firmware_guid=firmware_create_result.firmwareUpgradeGuid, sw_version= "1.0")
+new_upgrade_create_result = upgrade.create(firmware_guid=firmware_create_result.newId, sw_version= "1.0")
+fw_10_guid=firmware_create_result.firmwareUpgradeGuid
 
-upgrade.upload(new_upgrade_create_result.newId, 'test.txt')
+upgrade.upload(new_upgrade_create_result.newId, 'test.zip')
 
-upgrade.delete_match_guid(new_upgrade_create_result.newId)
-upgrade.delete_match_guid(firmware_create_result.firmwareUpgradeGuid)
+upgrade.delete_match_guid(fw_10_guid)
+
+# there always has to be at least one fw upgrade available so we cannot delete both
+# upgrade.delete_match_guid(fw_00_guid)
 
 
 try:

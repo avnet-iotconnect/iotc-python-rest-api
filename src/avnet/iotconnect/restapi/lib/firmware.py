@@ -95,7 +95,7 @@ def create(
     if upgrade_description is not None:
         data["firmwareUpgradeDescription"] = description
 
-    response = request(apiurl.ep_firmware, '/Firmware', data=data)
+    response = request(apiurl.ep_firmware, '/Firmware', json=data)
     return response.data.get_one(dc=FirmwareCreateResult)
 
 def deprecate_match_guid(guid: str) -> None:

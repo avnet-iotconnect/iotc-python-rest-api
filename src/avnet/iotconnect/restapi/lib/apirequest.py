@@ -4,7 +4,9 @@ from typing import Optional, TypeVar, Union, Protocol, ClassVar, Any
 
 import jmespath
 import requests
+from requests.adapters import HTTPAdapter
 from requests.exceptions import RetryError
+from urllib3 import Retry
 
 from . import config
 from .error import ResponseError, AuthError, ApiException, SingleValueExpected, ValueExpected
@@ -112,6 +114,7 @@ class Response:
 def request(
         endpoint: str,
         path: str,
+        json: Optional[dict] = None, # same as post data, but forces content type application/json
         data: Optional[dict] = None,
         params: Optional[dict] = None,
         headers: dict[str, str] = None,
@@ -120,9 +123,9 @@ def request(
         files=None,
         codes_ok = frozenset([HTTPStatus.OK])
 ):
-    # s = requests.Session()
-    # retries = Retry(total=3, backoff_factor=0.1, status_forcelist=[500, 502, 503, 504])
-    # s.mount('https://', HTTPAdapter(max_retries=retries))
+    s = requests.Session()
+    retries = Retry(total=3, backoff_factor=0.1)
+    s.mount('https://', HTTPAdapter(max_retries=retries))
 
     if headers is None:  # default headers
         # avoid circular dependency
@@ -133,20 +136,21 @@ def request(
         headers = _get_auth_headers()
 
     if method is None:  # figure out default method
-        if data is not None or files is not None:
+        if json is not None or data is not None or files is not None:
             method = HTTPMethod.POST
         else:
             method = HTTPMethod.GET
 
     if config.api_trace_enabled:
-        traced_data = data
-        if isinstance(traced_data, dict) and traced_data.get('password') is not None:  # do not print passwords
-            traced_data = dict(traced_data)
-            traced_data['password'] = '*******'
-        print("%s %s%s data=%s params=%s" % (method, endpoint, path, traced_data, params))
+        def remove_password(traced_data):
+            if isinstance(traced_data, dict) and traced_data.get('password') is not None:  # do not print passwords
+                traced_data = dict(traced_data)
+                traced_data['password'] = '*******'
+
+        print("%s %s%s json=%s data=%s params=%s" % (method, endpoint, path, remove_password(json), remove_password(data), params))
 
     try:
-        response = Response(requests.request(method, endpoint + path, json=data, params=params, headers=headers, files=files))
+        response = Response(s.request(method, endpoint + path, data=data, json=json, params=params, headers=headers, files=files))
         if not allow_failure:
             response.ensure_success(codes_ok=codes_ok)
         return response

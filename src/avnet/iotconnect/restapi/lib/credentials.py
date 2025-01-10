@@ -54,7 +54,7 @@ def authenticate(username: str, password: str, solution_key: str) -> None:
         "username": username,
         "password": password
     }
-    response = request(apiurl.ep_auth, "/Auth/login", data=data, headers=headers)
+    response = request(apiurl.ep_auth, "/Auth/login", json=data, headers=headers)
     access_token = response.body.get_object_value("access_token")
     refresh_token = response.body.get_object_value("refresh_token")
     expires_in = response.body.get_object_value("expires_in")
@@ -75,7 +75,7 @@ def refresh() -> None:
     data = {
         "refreshtoken": refresh_token
     }
-    response = request(apiurl.ep_auth, "/Auth/refresh-token", data=data, headers=get_auth_headers())
+    response = request(apiurl.ep_auth, "/Auth/refresh-token", json=data, headers=get_auth_headers())
     access_token = response.body.get_or_raise("access_token")
     refresh_token = response.body.get_or_raise("refresh_token")
     expires_in = response.body.get_or_raise("expires_in")

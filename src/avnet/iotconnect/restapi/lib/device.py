@@ -81,7 +81,7 @@ def create(
     # if auto_generate:
     #    data['autoGenerate'] = True
 
-    response = request(apiurl.ep_device, '/Device', data=data)
+    response = request(apiurl.ep_device, '/Device', json=data)
     ret = response.data.get_one()
     # use upper() case because the returned guid is lower case, but it should be upper. Causes lookups to fail.
     return ret.get('newid').upper() if ret is not None else None
