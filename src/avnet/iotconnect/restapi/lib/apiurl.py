@@ -43,8 +43,13 @@ def default_endpoint_mapper(platform: str, env: str) -> Callable[[str], str]:
     }
     pattern = patterns.get(platform).get(env)
 
+
     def format_url(endpoint_type: str) -> str:
-        return pattern % endpoint_type
+        result = pattern % endpoint_type
+        # special case for Azure. File URL wants "2.1". So far the easiest way to hack that:
+        if endpoint_type == 'file':
+            result = result.replace('2.0', '1.1')
+        return result
 
     return format_url
 
