@@ -63,9 +63,6 @@ def get(params: dict[str, any]) -> Template:
 def get_by_template_code(template_code: str) -> Optional[Template]:
     """ Lookup an template by template code - unique template ID supplied during creation """
     _validate_template_code(template_code)
-#    if template_code is None or len(template_code) == 0:
-#        raise UsageError('get_by_template_code: The template code argument is missing')
-#    return query_expect_one(f"[?code==`{template_code}`]")
     try:
         response = request(apiurl.ep_device, f'/device-template/template-code/{template_code}')
         return response.data.get_one(dc=Template)
@@ -75,9 +72,11 @@ def get_by_template_code(template_code: str) -> Optional[Template]:
 
 def get_by_guid(guid: str) -> Optional[Template]:
     """ Lookup a template by GUID """
-    if guid is None or len(guid) == 0:
-        raise UsageError('get_by_guid: The template guid argument is missing')
-    return query_expect_one(f"[?guid==`{guid}`]")
+    try:
+        response = request(apiurl.ep_device, f'/device-template/{guid}')
+        return response.data.get_one(dc=Template)
+    except ResponseError:
+        return None
 
 
 def create(
@@ -134,8 +133,9 @@ def create_from_json_str(
     # now back to converting it into a file for the upload
     with io.StringIO() as string_file:
         # separators = compress the json
+        new_template_str = json.dumps(template_obj, separators = (',', ':'))
         # try fix the template delete issue with some invalid xml when deleting by forcing windows newlines
-        string_file.write(json.dumps(template_obj, separators=(',', ':')).replace('\r\n', '\n').replace('\n', '\r\n'))
+        string_file.write(new_template_str.replace('\r\n', '\n').replace('\n', '\r\n'))
         string_file.seek(0)  # reset the file pointer after writing
         f = {"file": string_file}
         response = request(apiurl.ep_device, '/device-template/quick', files=f)

@@ -5,6 +5,9 @@ import sys
 import avnet.iotconnect.restapi.lib.device as device
 from avnet.iotconnect.restapi.lib import template
 
+TEMPLATE_CODE = 'apidemo1'
+
+
 DUID = os.environ.get('IOTC_DUID')
 
 # try load duid from iotcDeviceConfig.json
@@ -22,14 +25,14 @@ if DUID is None:
 
 do_delete_template = True
 
-t = template.get_by_template_code('apidemo1')
+t = template.get_by_template_code(TEMPLATE_CODE)
 print('get_by_template_code=', t)
 if t is not None:
     do_delete_template = False
     print("Template already exists. Not deleting after the test.")
 else:
-    result = template.create('sample-device-template.json', new_template_code="apidemo1", new_template_name="ApiExample")
-    t = template.get_by_guid(result)
+    result = template.create('sample-device-template.json', new_template_code=TEMPLATE_CODE, new_template_name="ApiExample")
+    t = template.get_by_guid(result.deviceTemplateGuid)
 
 d = device.get_by_duid(DUID)
 if d is not None:
