@@ -27,7 +27,7 @@ def default_endpoint_mapper(platform: str, env: str) -> Callable[[str], str]:
     elif env not in ENV_CHOICES:
         raise ConfigError('Invalid environment. Valid environments are "%s"' % ', '.join(ENV_CHOICES))
 
-    # mapping example: https://docs.iotconnect.io/iotconnect/rest-api/auth/?env=uat&pf=aws.
+    # mapping example: https://docs.iotconnect.io/iotconnect/rest-api/auth/?env=uat&pf=aws
     # Note that Azure is not at 2.1 yet. Azure docs also available at: https://developer.iotconnect.io/
     patterns = {
         PF_AZ: {

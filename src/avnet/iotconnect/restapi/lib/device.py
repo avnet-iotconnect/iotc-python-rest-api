@@ -1,5 +1,5 @@
 """This module provides IoTConnect authentication functionality."""
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from http import HTTPMethod
 from typing import Optional, Union
 
@@ -20,6 +20,17 @@ class Device:
     deviceTemplateGuid: str
     messageVersion: str
 
+@dataclass
+class DeviceCreateResult:
+        # noinspection SpellCheckingInspection
+        newid: str
+        entityGuid: str
+        uniqueId: str
+        activeDeviceCount: int
+        inActiveDeviceCount: int
+        ggDeviceScript: Optional[str] = field(default=None)
+        parentUniqueId: Optional[str] = field(default=None)
+
 
 def query(query_str: str = '[*]') -> list[Device]:
     response = request(apiurl.ep_device, "/Device")
@@ -30,12 +41,20 @@ def query_expect_one(query_str: str = '[*]') -> Device:
     response = request(apiurl.ep_device, '/Device')
     return response.data.get_one(query_str, dc=Device)
 
+def get_by_guid(duid) -> Device:
+    """Lookup a device by uniqueId"""
+    if duid is None:
+        raise UsageError('get_by_duid: The device Unique ID (DUID) argument is missing')
+    response = request(apiurl.ep_device, f'/Device/{duid}')
+    return response.data.get_one(dc=Device)
+
 
 def get_by_duid(duid) -> Device:
     """Lookup a device by uniqueId"""
     if duid is None:
         raise UsageError('get_by_duid: The device Unique ID (DUID) argument is missing')
-    return query_expect_one(f"[?uniqueId==`{duid}`]")
+    response = request(apiurl.ep_device, f'/Device/uniqueId/{duid}')
+    return response.data.get_one(dc=Device)
 
 
 def create(
@@ -81,10 +100,8 @@ def create(
     # if auto_generate:
     #    data['autoGenerate'] = True
 
-    response = request(apiurl.ep_device, '/Device', json=data)
-    ret = response.data.get_one()
-    # use upper() case because the returned guid is lower case, but it should be upper. Causes lookups to fail.
-    return ret.get('newid').upper() if ret is not None else None
+    response = request(apiurl.ep_device, '/Device', json=data, )
+    return response.data.get_one()  # we expect data to be empty -- 'data': [] on success
 
 
 def delete_match_guid(guid: str) -> None:

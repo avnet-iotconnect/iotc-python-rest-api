@@ -50,13 +50,17 @@ with open('device-cert.pem', 'r') as file:
 
 upgrade.publish(firmware_create_result.firmwareUpgradeGuid)
 
-print('delete device=', device.delete_match_guid(result))
 
 new_upgrade_create_result = upgrade.create(firmware_guid=firmware_create_result.newId, sw_version= "1.0")
 fw_10_guid=firmware_create_result.firmwareUpgradeGuid
 upgrade.upload(new_upgrade_create_result.newId, 'test.zip')
 upgrade.delete_match_guid(fw_10_guid)
+
 # there always has to be at least one fw upgrade available so we cannot delete both
 # upgrade.delete_match_guid(fw_00_guid)
 firmware.deprecate_match_name(FIRMWARE_NAME)
+
+device.delete_match_duid(DUID)
+
+
 template.delete_match_code(TEMPLATE_CODE)

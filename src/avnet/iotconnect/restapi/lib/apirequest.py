@@ -40,6 +40,11 @@ class Parser:
         else:
             object_list = []
             for item in ret:
+                # some json keys can have dashes it seems
+                for key in item.copy().keys(): # copy so we don't affect keys while looping
+                    if '-' in key:
+                        new_key = key.replace('-', '_')
+                        item[new_key] = item.pop(key)
                 object_list.append(make_dataclass(dc.__name__, ((k, type(v)) for k, v in item.items()))(**item))
             return object_list
 
