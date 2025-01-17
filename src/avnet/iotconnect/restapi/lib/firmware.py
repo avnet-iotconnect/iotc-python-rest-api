@@ -121,6 +121,6 @@ def deprecate_match_name(name: str) -> None:
     _validate_firmware_name(name)
     fw = get_by_name(name)
     if fw is None:
-        raise UsageError(f'delete_match_name: Firmware with name "{name}" not found')
+        raise FileNotFoundError(f'delete_match_name: Firmware with name "{name}" not found')
     deprecate_match_guid(fw.guid)
 

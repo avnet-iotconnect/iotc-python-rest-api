@@ -97,11 +97,8 @@ def create(
     if device_certificate is not None:
         data['certificateText'] = device_certificate
 
-    # if auto_generate:
-    #    data['autoGenerate'] = True
-
-    response = request(apiurl.ep_device, '/Device', json=data, )
-    return response.data.get_one()  # we expect data to be empty -- 'data': [] on success
+    response = request(apiurl.ep_device, '/Device', json=data)
+    return response.data.get_one(dc=DeviceCreateResult)  # we expect data to be empty -- 'data': [] on success
 
 
 def delete_match_guid(guid: str) -> None:
@@ -124,5 +121,7 @@ def delete_match_duid(duid: str) -> None:
     if duid is None:
         raise UsageError('delete_match_duid: The device duid argument is missing')
     device = get_by_duid(duid)
+    if device is None:
+        raise FileNotFoundError(f'delete_match_duid: Device with DUID "{duid}" not found')
     response = request(apiurl.ep_device, f'/Device/{device.guid}', method=HTTPMethod.DELETE)
     response.data.get_one()  # we expect data to be empty -- 'data': [] on success

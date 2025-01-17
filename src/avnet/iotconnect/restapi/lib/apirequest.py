@@ -9,7 +9,7 @@ from requests.exceptions import RetryError
 from urllib3 import Retry
 
 from . import config
-from .error import ResponseError, AuthError, ApiException, SingleValueExpected, ValueExpected
+from .error import ResponseError, AuthError, ApiException, SingleValueExpected, ValueExpected, ConflictResponseError
 
 _get_auth_headers = None  # avoid circular dependency
 
@@ -108,8 +108,12 @@ class Response:
                     message += " Errors: "
                     for e in errors:
                         message += str(e) + " "
+
+                # differentiate between these cases for better error handling
                 if self.status == 401:
                     raise AuthError(message, self.status)
+                elif self.status == 409:
+                    raise ConflictResponseError(message, self.status)
                 else:
                     raise ResponseError(message, self.status)
             else:

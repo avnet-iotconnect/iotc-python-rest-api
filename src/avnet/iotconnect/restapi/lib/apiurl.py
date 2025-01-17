@@ -27,6 +27,7 @@ def default_endpoint_mapper(platform: str, env: str) -> Callable[[str], str]:
     elif env not in ENV_CHOICES:
         raise ConfigError('Invalid environment. Valid environments are "%s"' % ', '.join(ENV_CHOICES))
 
+    # TODO: Use discovery https://discovery.iotconnect.io/api/uisdk/solutionkey/RjQ5QkE1M0EtNThFRC00RDRBLThBMTQtOEZDRTlDQUFDMEEyLWFjY2Vzc0tFWS1jaTJ2djdxNmFj/env/avnetpoc?version=v2
     # mapping example: https://docs.iotconnect.io/iotconnect/rest-api/auth/?env=uat&pf=aws
     # Note that Azure is not at 2.1 yet. Azure docs also available at: https://developer.iotconnect.io/
     patterns = {
@@ -72,4 +73,4 @@ def configure(endpoint_mapper: Callable[[str], str] = None) -> None:
     ep_file = endpoint_mapper("file")
 
 # Have some AWS UAT endpoints configured by default
-configure(default_endpoint_mapper(os.environ.get("IOTC_PF") or PF_AWS, os.environ.get("IOTC_ENV") or ENV_UAT))
+configure(default_endpoint_mapper(os.environ.get("IOTC_PF") or PF_AWS, os.environ.get("IOTC_PF_ENV") or ENV_UAT))

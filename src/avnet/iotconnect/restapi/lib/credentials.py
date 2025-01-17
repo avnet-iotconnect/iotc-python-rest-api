@@ -16,26 +16,19 @@ access_token: Optional[str] = None
 refresh_token = None
 _token_expiry = 0  # just initialize for "sense" purposes
 _token_time = 0
-_is_checking = False  # prevent recursion
 
 
 def check() -> None:
-    try:
-        global _is_checking
-        if _is_checking: return
-        _is_checking = True # prevent recursion
-        if access_token is None:
-            raise UsageError("No access token configured")
-        else:
-            if _token_expiry < _ts_now():
-                raise AuthError("Token expired")
-            if should_refresh():
-                # It's been longer than an hour since we refreshed the token. We should refresh it now.
-                print("Refreshing the token...")
-                refresh()
-                _save_config()
-    finally:
-        _is_checking = False
+    if access_token is None:
+        raise UsageError("No access token configured")
+    else:
+        if _token_expiry < _ts_now():
+            raise AuthError("Token expired")
+        if should_refresh():
+            # It's been longer than an hour since we refreshed the token. We should refresh it now.
+            refresh()
+            _save_config()
+
 
 def authenticate(username: str, password: str, solution_key: str) -> None:
     global access_token, refresh_token, _token_time, _token_expiry
@@ -67,14 +60,11 @@ def authenticate(username: str, password: str, solution_key: str) -> None:
     expires_in = response.body.get_object_value("expires_in")
     _token_time = _ts_now()
     _token_expiry = _token_time + expires_in
-    # print("refresh token: " + refresh_token)
-    print("Authentication successful.")
-    # print("access token: " + access_token)
     _save_config()
 
 
 def should_refresh() -> bool:
-    return _token_time + 3600 < _ts_now() and os.environ.get('IOTC_NO_TOKEN_REFRESH') is None
+    return _token_time + 100 < _ts_now() and os.environ.get('IOTC_NO_TOKEN_REFRESH') is None
 
 
 def refresh() -> None:
@@ -82,7 +72,7 @@ def refresh() -> None:
     data = {
         "refreshtoken": refresh_token
     }
-    response = request(apiurl.ep_auth, "/Auth/refresh-token", json=data, headers=get_auth_headers())
+    response = request(apiurl.ep_auth, "/Auth/refresh-token", json=data, headers={})
     access_token = response.body.get_object_value("access_token")
     refresh_token = response.body.get_object_value("refresh_token")
     expires_in = response.body.get_object_value("expires_in")

@@ -1,7 +1,6 @@
-from avnet.iotconnect.restapi.lib import firmware, upgrade, certgen, device
 import avnet.iotconnect.restapi.lib.template as template
-from avnet.iotconnect.restapi.lib.error import UsageError
-
+from avnet.iotconnect.restapi.lib import firmware, upgrade, certgen, device
+from avnet.iotconnect.restapi.lib.error import ConflictResponseError
 
 TEMPLATE_CODE = 'apidemo1'
 FIRMWARE_NAME = 'APIDEMO1FW'
@@ -9,7 +8,7 @@ DUID='apidemodev01'
 
 try:
     firmware.deprecate_match_name(FIRMWARE_NAME)
-except UsageError as ex:
+except ConflictResponseError as ex:
     print("Firmware originally not found")
 
 t = template.get_by_template_code(TEMPLATE_CODE)

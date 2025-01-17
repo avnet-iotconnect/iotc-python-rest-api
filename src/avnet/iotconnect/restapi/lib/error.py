@@ -8,17 +8,27 @@ class ApiException(Exception):
         self.status = http_status
 
 
-class AuthError(ApiException):
-    """ Authentication related error """
-
-    def __init__(self, message: str, http_status: int =HTTPStatus.UNAUTHORIZED):
-        super().__init__(message, http_status)
-
-
 class ResponseError(ApiException):
     """ Custom exception for bad HTTP response status code """
 
     def __init__(self, message: str, http_status: int):
+        super().__init__(message, http_status)
+
+class AuthError(ApiException):
+    """ Authentication related error """
+
+    def __init__(self, message: str, http_status: int = HTTPStatus.UNAUTHORIZED):
+        super().__init__(message, http_status)
+
+class ConflictResponseError(ApiException):
+    """
+    This error is returned when attempt to create a resource that already exists
+    or delete a resource that has other resources associated with it (eg. a template
+    that has device associated).
+    Can also occur under other conditions that prevent data modification.
+    """
+
+    def __init__(self, message: str, http_status: int = HTTPStatus.CONFLICT):
         super().__init__(message, http_status)
 
 
