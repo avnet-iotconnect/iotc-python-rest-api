@@ -64,7 +64,7 @@ def authenticate(username: str, password: str, solution_key: str) -> None:
 
 
 def should_refresh() -> bool:
-    return _token_time + 100 < _ts_now() and os.environ.get('IOTC_NO_TOKEN_REFRESH') is None
+    return _token_time + 3600 < _ts_now() and os.environ.get('IOTC_NO_TOKEN_REFRESH') is None
 
 
 def refresh() -> None:
@@ -78,9 +78,6 @@ def refresh() -> None:
     expires_in = response.body.get_object_value("expires_in")
     _token_time = _ts_now()
     _token_expiry = _token_time + expires_in
-    # print("refresh token: " + refresh_token)
-    print("Token refreshed successfully.")
-    # print(access_token)
     _save_config()
 
 
@@ -101,7 +98,6 @@ def _get_basic_token() -> str:
     }
     response = request(apiurl.ep_auth, "/Auth/basic-token", headers=headers)
     basic_token = response.body.get("data")
-    # print("Basic token: " + basic_token)
     return basic_token
 
 

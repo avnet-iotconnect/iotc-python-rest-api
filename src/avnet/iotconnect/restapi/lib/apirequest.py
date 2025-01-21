@@ -9,7 +9,7 @@ from requests.exceptions import RetryError
 from urllib3 import Retry
 
 from . import config
-from .error import ResponseError, AuthError, ApiException, SingleValueExpected, ValueExpected, ConflictResponseError
+from .error import ResponseError, AuthError, ApiException, SingleValueExpected, ValueExpected, ConflictResponseError, NotFoundResponseError
 
 _get_auth_headers = None  # avoid circular dependency
 
@@ -21,7 +21,7 @@ class Headers(dict[str, str]):
     V_APP_JSON = "application/json"
 
 
-# Credit: intgr - stackoverflow example https://stackoverflow.com/questions/61736151/how-to-make-a-typevar-generic-type-in-python-with-dataclass-constraint
+# Credit: "intgr" at stackoverflow example https://stackoverflow.com/questions/61736151/how-to-make-a-typevar-generic-type-in-python-with-dataclass-constraint
 class DataclassInstance(Protocol):
     __dataclass_fields__: ClassVar[dict[str, Field[Any]]]
 
@@ -111,9 +111,11 @@ class Response:
 
                 # differentiate between these cases for better error handling
                 if self.status == 401:
-                    raise AuthError(message, self.status)
+                    raise AuthError(message)
                 elif self.status == 409:
-                    raise ConflictResponseError(message, self.status)
+                    raise ConflictResponseError(message)
+                elif self.status == 404:
+                    raise NotFoundResponseError(message)
                 else:
                     raise ResponseError(message, self.status)
             else:
@@ -131,7 +133,7 @@ def request(
         allow_failure=False,
         files=None,
         codes_ok = frozenset([HTTPStatus.OK])
-):
+) -> Optional[Response]:
     s = requests.Session()
     retries = Retry(total=3, backoff_factor=0.1)
     s.mount('https://', HTTPAdapter(max_retries=retries))

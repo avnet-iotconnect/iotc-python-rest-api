@@ -1,11 +1,10 @@
 """This module provides IoTConnect authentication functionality."""
-import os
 from dataclasses import dataclass
-from http import HTTPMethod, HTTPStatus
+from http import HTTPStatus
 from typing import Optional
 
-from . import apiurl, credentials
-from .apirequest import request, Headers
+from . import apiurl
+from .apirequest import request
 from .error import UsageError
 
 

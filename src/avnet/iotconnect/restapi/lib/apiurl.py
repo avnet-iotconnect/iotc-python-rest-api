@@ -1,6 +1,7 @@
 import os
 from typing import Callable
 
+from . import apirequest
 from .error import ConfigError
 
 PF_AZ = "az"
@@ -59,7 +60,7 @@ def default_endpoint_mapper(platform: str, env: str) -> Callable[[str], str]:
 This performs endpoint URL mapping for different environments (UAT, PROD..)
 and endpoint types (auth, device ...) to a base url to which to apply API calls
 """
-def configure(endpoint_mapper: Callable[[str], str] = None) -> None:
+def configure_defaults(endpoint_mapper: Callable[[str], str] = None) -> None:
     if endpoint_mapper is None:
         raise ConfigError("Endpoint: endpoint_mapper is required!")
     global ep_master, ep_auth, ep_user, ep_device, ep_firmware, ep_event, ep_telemetry, ep_file
@@ -72,5 +73,25 @@ def configure(endpoint_mapper: Callable[[str], str] = None) -> None:
     ep_telemetry = endpoint_mapper("telemetry")
     ep_file = endpoint_mapper("file")
 
+def configure_using_discovery(solution_key: str, platform: str, device_env: str):
+    global ep_master, ep_auth, ep_user, ep_device, ep_firmware, ep_event, ep_telemetry, ep_file
+    version = '2.1' if platform == 'aws' else '2'
+    response = apirequest.request(f'https://discovery.iotconnect.io', f'/api/uisdk/solutionkey/{solution_key}/env/{device_env}', params={'version': version}, headers={})
+    d = response.data
+    ep_master = d.get_object_value("masterBaseUrl")
+    ep_auth = d.get_object_value("authBaseUrl")
+    ep_user = d.get_object_value("userBaseUrl")
+    ep_device = d.get_object_value("deviceBaseUrl")
+    ep_firmware = d.get_object_value("firmwareBaseUrl")
+    ep_event = d.get_object_value("eventBaseUrl")
+    ep_telemetry = d.get_object_value("telemetryBaseUrl")
+    ep_file = d.get_object_value("fileBaseUrl")
+
+
 # Have some AWS UAT endpoints configured by default
-configure(default_endpoint_mapper(os.environ.get("IOTC_PF") or PF_AWS, os.environ.get("IOTC_PF_ENV") or ENV_UAT))
+configure_defaults(default_endpoint_mapper(os.environ.get("IOTC_PF") or PF_AWS, os.environ.get("IOTC_API_ENV") or ENV_UAT))
+
+# not the difference between specifying IOTC_API_ENV and IOTC_ENV. API_ENV should the API environment mapping, but IOTC_ENV should
+# be your IoTConnect Environment for your device - listed in your Settings -> Key Vault
+if os.environ.get("IOTC_PF") is not None and os.environ.get("IOTC_ENV") is not None and os.environ.get("IOTC_SKEY") is not None:
+    configure_using_discovery(os.environ.get("IOTC_SKEY"), os.environ.get("IOTC_PF"), os.environ.get("IOTC_ENV"))

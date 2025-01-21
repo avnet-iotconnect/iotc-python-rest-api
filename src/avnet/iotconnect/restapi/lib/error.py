@@ -26,11 +26,20 @@ class ConflictResponseError(ApiException):
     or delete a resource that has other resources associated with it (eg. a template
     that has device associated).
     Can also occur under other conditions that prevent data modification.
+    It is also used internally by out API interface GET functions, but will be handled
+    internally and the user should be getting None for the requested resource.
     """
 
     def __init__(self, message: str, http_status: int = HTTPStatus.CONFLICT):
         super().__init__(message, http_status)
 
+class NotFoundResponseError(ApiException):
+    """
+    These errors should be internally handled in most cases of get() functions b returning None to the user.
+    """
+
+    def __init__(self, message: str, http_status: int = HTTPStatus.NOT_FOUND):
+        super().__init__(message, http_status)
 
 class UsageError(ValueError):
     """ Incorrect usage. Missing argument etc. """

@@ -50,9 +50,11 @@ def init():
     def _process_configure(a: argparse.Namespace) -> None:
         apiurl.configure(apiurl.default_endpoint_mapper(a.platform, a.env))
         credentials.authenticate(username=a.username, password=a.password, solution_key=a.skey)
+        print("Logged in successfully.")
 
     def _process_refresh(a: argparse.Namespace) -> None:
         credentials.refresh()
+        print("Token refreshed successfully.")
 
 
 

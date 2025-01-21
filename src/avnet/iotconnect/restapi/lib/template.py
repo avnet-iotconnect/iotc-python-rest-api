@@ -55,9 +55,12 @@ def query_expect_one(query_str: str = '[*]') -> Optional[Template]:
     return response.data.get_one(query_str, dc=Template)
 
 
-def get(params: dict[str, any]) -> Template:
-    response = request(apiurl.ep_device, '/device-template', params=params)
-    return response.data.get_one(dc=Template)
+def get(params: dict[str, any]) -> Optional[Template]:
+    try:
+        response = request(apiurl.ep_device, '/device-template', params=params)
+        return response.data.get_one(dc=Template)
+    except ConflictResponseError:
+        return None
 
 
 def get_by_template_code(template_code: str) -> Optional[Template]:
@@ -66,7 +69,7 @@ def get_by_template_code(template_code: str) -> Optional[Template]:
     try:
         response = request(apiurl.ep_device, f'/device-template/template-code/{template_code}')
         return response.data.get_one(dc=Template)
-    except ResponseError:
+    except ConflictResponseError:
         return None
 
 
@@ -75,7 +78,7 @@ def get_by_guid(guid: str) -> Optional[Template]:
     try:
         response = request(apiurl.ep_device, f'/device-template/{guid}')
         return response.data.get_one(dc=Template)
-    except ResponseError:
+    except ConflictResponseError:
         return None
 
 
@@ -153,8 +156,11 @@ def delete_match_guid(guid: str) -> None:
     """
     if guid is None:
         raise UsageError('delete_match_guid: The template guid argument is missing')
-    response = request(apiurl.ep_device, f'/device-template/{guid}', method=HTTPMethod.DELETE)
-    response.data.get_one()  # we expect data to be empty -- 'data': [] on success
+    try:
+        response = request(apiurl.ep_device, f'/device-template/{guid}', method=HTTPMethod.DELETE)
+        response.data.get_one()  # we expect data to be empty -- 'data': [] on success
+    finally: return None
+
 
 
 def delete_match_code(code: str) -> None:
