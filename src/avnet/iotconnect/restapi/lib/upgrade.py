@@ -1,4 +1,7 @@
-"""This module provides IoTConnect authentication functionality."""
+# SPDX-License-Identifier: MIT
+# Copyright (C) 2025 Avnet
+# Authors: Nikola Markovic <nikola.markovic@avnet.com> et al.
+
 import os
 from dataclasses import dataclass
 from http import HTTPMethod

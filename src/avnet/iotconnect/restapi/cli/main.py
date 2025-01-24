@@ -1,11 +1,15 @@
+# SPDX-License-Identifier: MIT
+# Copyright (C) 2025 Avnet
+# Authors: Nikola Markovic <nikola.markovic@avnet.com> et al.
+
 import argparse
-import json
 import os
 import sys
 
-import avnet.iotconnect.restapi.lib.credentials as credentials
 import avnet.iotconnect.restapi.lib.apiurl as apiurl
-from avnet.iotconnect.restapi.lib.error import UsageError, ApiException
+import avnet.iotconnect.restapi.lib.credentials as credentials
+from avnet.iotconnect.restapi.lib import config
+from avnet.iotconnect.restapi.lib.error import ApiException
 
 
 def init():
@@ -32,11 +36,11 @@ def init():
         )
         ap.add_argument(
             "-pf", "--platform", dest="platform", choices=apiurl.PF_CHOICES, default=os.environ.get("IOTC_PF") or apiurl.PF_AWS,
-            help='account platform ("aws" for AWS, or "az" for azure) - or use the IOTC_ENV environment variable.'
+            help='account platform ("aws" for AWS, or "az" for Azure) - or use the IOTC_ENV environment variable.'
         )
         ap.add_argument(
             "-e", "--env", dest="env", choices=apiurl.ENV_CHOICES, default=os.environ.get("IOTC_ENV") or apiurl.ENV_UAT,
-            help='account solution environment - or use IOTC_ENV environment variable. NOTE: "poc" environment is usually "uat"'
+            help='account environment - From settings -> Key Vault in the Web UI'
         )
 
     def _register_refresh(ap: argparse.ArgumentParser) -> None:
@@ -48,8 +52,11 @@ def init():
         ap.description = description
 
     def _process_configure(a: argparse.Namespace) -> None:
-        apiurl.configure(apiurl.default_endpoint_mapper(a.platform, a.env))
-        credentials.authenticate(username=a.username, password=a.password, solution_key=a.skey)
+        config.env = a.env
+        config.pf = a.platform
+        config.skey = a.skey
+        apiurl.configure_using_discovery()
+        credentials.authenticate(username=a.username, password=a.password)
         print("Logged in successfully.")
 
     def _process_refresh(a: argparse.Namespace) -> None:

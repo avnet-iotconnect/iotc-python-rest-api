@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: MIT
+# Copyright (C) 2025 Avnet
+# Authors: Nikola Markovic <nikola.markovic@avnet.com> et al.
+
 from dataclasses import make_dataclass, Field
 from http import HTTPStatus, HTTPMethod
 from typing import Optional, TypeVar, Union, Protocol, ClassVar, Any
@@ -9,7 +13,7 @@ from requests.exceptions import RetryError
 from urllib3 import Retry
 
 from . import config
-from .error import ResponseError, AuthError, ApiException, SingleValueExpected, ValueExpected, ConflictResponseError, NotFoundResponseError
+from .error import ResponseError, AuthError, ApiException, SingleValueExpected, ValueExpected, ConflictResponseError, NotFoundResponseError, ConfigError
 
 _get_auth_headers = None  # avoid circular dependency
 
@@ -134,9 +138,15 @@ def request(
         files=None,
         codes_ok = frozenset([HTTPStatus.OK])
 ) -> Optional[Response]:
+
+    # Catch all for unconfigured API
+    if endpoint is None:
+        raise ConfigError("API has not been configured!")
+
     s = requests.Session()
     retries = Retry(total=3, backoff_factor=0.1)
     s.mount('https://', HTTPAdapter(max_retries=retries))
+
 
     if headers is None:  # default headers
         # avoid circular dependency

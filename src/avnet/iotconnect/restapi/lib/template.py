@@ -1,4 +1,7 @@
-"""This module provides IoTConnect authentication functionality."""
+# SPDX-License-Identifier: MIT
+# Copyright (C) 2025 Avnet
+# Authors: Nikola Markovic <nikola.markovic@avnet.com> et al.
+
 import io
 import json
 from dataclasses import dataclass
@@ -7,7 +10,7 @@ from typing import Optional
 
 from . import apiurl
 from .apirequest import request
-from .error import UsageError, ResponseError, ConflictResponseError
+from .error import UsageError, ConflictResponseError
 
 # Authentication types. See https://docs.iotconnect.io/iotconnect/sdk/message-protocol/device-message-2-1/reference-table/#authtypes
 AT_CA_SIGNED = 2

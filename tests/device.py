@@ -1,3 +1,8 @@
+# SPDX-License-Identifier: MIT
+# Copyright (C) 2025 Avnet
+# Authors: Nikola Markovic <nikola.markovic@avnet.com> et al.
+
+
 import json
 import os
 import sys
