@@ -10,7 +10,7 @@ from typing import Optional
 
 from . import apiurl
 from .apirequest import request
-from .error import UsageError, ConflictResponseError
+from .error import UsageError, ConflictResponseError, NotFoundResponseError
 
 # Authentication types. See https://docs.iotconnect.io/iotconnect/sdk/message-protocol/device-message-2-1/reference-table/#authtypes
 AT_CA_SIGNED = 2
@@ -159,11 +159,9 @@ def delete_match_guid(guid: str) -> None:
     """
     if guid is None:
         raise UsageError('delete_match_guid: The template guid argument is missing')
-    try:
-        response = request(apiurl.ep_device, f'/device-template/{guid}', method=HTTPMethod.DELETE)
-        response.data.get_one()  # we expect data to be empty -- 'data': [] on success
-    finally: return None
 
+    response = request(apiurl.ep_device, f'/device-template/{guid}', method=HTTPMethod.DELETE)
+    response.data.get_one()  # we expect data to be empty -- 'data': [] on success
 
 
 def delete_match_code(code: str) -> None:
@@ -177,5 +175,5 @@ def delete_match_code(code: str) -> None:
     _validate_template_code(code)
     t = get_by_template_code(code)
     if t is None:
-        raise ConflictResponseError(f'delete_match_code: Template with code "{code}" not found')
+        raise NotFoundResponseError(f'delete_match_code: Template with code "{code}" not found')
     delete_match_guid(t.guid)

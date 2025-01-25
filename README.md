@@ -43,21 +43,37 @@ In order to run this project, it is recommended to set the environment variables
 | IOTC_USER | Your IoTconnect username (email)                                                                  |
 | IOTC_PASS | Your IoTconnect password                                                                          |
 
-With this, you can simply run the cmd.py script form the examples with
+
+With this, you can simply run the cmd.py script form the examples with:
 
 ```shell
-python3 cmd.py
+python3 iotccli.py
 ```
 
-You can specify explicitly or override the environment values py passing command line arguments to the configure tool. See:
+You can specify explicitly, or override the environment values by passing command line arguments to the configure tool. See:
 
 ```shell
-python3 cmd.py --help
+python3 iotccli.py configure --help
 ```
 
+Or even invoke the basic CLI with a simple python3 command without a script, for example to get help on the CLI interface and list available commands:
+
+```shell
+python3 -c "import sys; import avnet.iotconnect.restapi.cli.main as cli; cli.process(sys.argv[1:])" --help
+```
+
+Once the CLI is configured, you can run this basic example to create and device in your account:
+```shell
+TODO
+```
 It is still advisable to use the environment variable for your password 
 on Linux systems. Commands would be recorded in your shell history by default,
 which could present a security risk.
 
 
+### Special Environment Variables 
 
+| Name                      | Description                                                                                  |
+|---------------------------|----------------------------------------------------------------------------------------------|
+| IOTC_API_TRACE            | Setting this to any value will add add extra information to REST calls and some debug info.  |
+| IOTC_API_NO_TOKEN_REFRESH | Setting this to any value will disable the automatic token refresh                           |

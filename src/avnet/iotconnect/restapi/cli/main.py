@@ -8,8 +8,8 @@ import sys
 
 import avnet.iotconnect.restapi.lib.apiurl as apiurl
 import avnet.iotconnect.restapi.lib.credentials as credentials
-from avnet.iotconnect.restapi.lib import config
-from avnet.iotconnect.restapi.lib.error import ApiException
+from avnet.iotconnect.restapi.lib import config, template, device, entity
+from avnet.iotconnect.restapi.lib.error import ApiException, ConflictResponseError
 
 
 def init():
@@ -43,14 +43,6 @@ def init():
             help='account environment - From settings -> Key Vault in the Web UI'
         )
 
-    def _register_refresh(ap: argparse.ArgumentParser) -> None:
-        description = \
-            """ 
-            Attempt to refresh an existing token. This action will store the refreshed token into configuration
-            and allow you to run this tool without authenticating for 24 hours.
-            """
-        ap.description = description
-
     def _process_configure(a: argparse.Namespace) -> None:
         config.env = a.env
         config.pf = a.platform
@@ -59,10 +51,152 @@ def init():
         credentials.authenticate(username=a.username, password=a.password)
         print("Logged in successfully.")
 
+    #######################
+
+    def _register_refresh(ap: argparse.ArgumentParser) -> None:
+        description = \
+            """ 
+            Attempt to refresh an existing token. This action will store the refreshed token into configuration
+            and allow you to run this tool without authenticating for 24 hours.
+            """
+        ap.description = description
+
+
     def _process_refresh(a: argparse.Namespace) -> None:
         credentials.refresh()
         print("Token refreshed successfully.")
 
+    #######################
+
+    def _register_create_template(ap: argparse.ArgumentParser) -> None:
+        description = \
+            """ 
+            Create a new self-signed (Individual certificate) device given a template code and device DUID.
+            Before invoking this command, Ensure that the API has been configured with with the \"configure\" command. 
+            WARNING: At the time of creating this API, you will not be able to delete this device with the Web UI. Use the delete-device command. 
+            """
+        ap.description = description
+        ap.add_argument(
+            dest="template_path",
+            help="Path to the Template JSON file, which contains the template definition (usually exported from a manually created template)."
+        )
+        ap.add_argument(
+            "-n", "--code", dest="code", default=None,
+            help='Optional template code to override and use instead of the code defined in the template JSON file'
+        )
+        ap.add_argument(
+            "-e", "--name", dest="name", default=None,
+            help='Optional template name to override and use instead of the name defined in the template JSON file'
+        )
+
+    def _process_create_template(a: argparse.Namespace) -> None:
+        try:
+            template.create(template_json_path=a.template_path, new_template_code=a.code, new_template_name=a.name)
+        except ConflictResponseError as cre:
+            print(f'Template either already exists or there was an error while creating the template. Error was:', cre)
+            sys.exit(2)
+        print("Template created successfully.")
+
+    #######################
+
+    def _register_create_device(ap: argparse.ArgumentParser) -> None:
+        description = \
+            """ 
+            Create a new self-signed (Individual certificate) device given a template code and device DUID.
+            Before invoking this command, Ensure that the API has been configured with with the \"configure\" command. 
+            WARNING: At the time of creating this API, you will not be able to delete this device with the Web UI. Use the delete-device command. 
+            """
+        ap.description = description
+        ap.add_argument(
+            dest="template_code",
+            help="Template code of your device Template."
+        )
+        ap.add_argument(
+            dest="duid",
+            help="Device Unique ID."
+        )
+        ap.add_argument(
+            dest="cert", default=None,
+            help="Path to a pem certificate of your device. You can generate one using the generate-cert command"
+        )
+        ap.add_argument(
+            "-n", "--name", dest="name", default=None,
+            help='Optional custom device Name. DUID value will be used by default'
+        )
+        ap.add_argument(
+            "-e", "--entity", dest="entity", default=None,
+            help='Optional name of the entity under which to create the dev ice. My default the top level entity will be used'
+        )
+
+    #######################
+
+    def _register_delete_template(ap: argparse.ArgumentParser) -> None:
+        description = \
+            """ 
+            Delete a template with given template code.
+            """
+        ap.description = description
+        ap.add_argument(
+            dest="code",
+            help="Template code."
+        )
+
+
+    def _process_delete_template(a: argparse.Namespace) -> None:
+        try:
+            template.delete_match_code(a.code)
+        except ConflictResponseError as cre:
+            print(f'Template with code "{a.code}" appears to not exist or there was an error while deleting the template. Error was:', cre)
+            sys.exit(2)
+        print("Template deleted successfully.")
+
+    #####################################################
+
+    def _process_create_device(a: argparse.Namespace) -> None:
+        if a.entity is not None:
+            e = entity.get_by_name(a.entity)
+            if e is None:
+                print(f'Entity with name "{a.entity}" was not found')
+                sys.exit(1)
+        else:
+            e = entity.get_root_entity()
+
+        t = template.get_by_template_code(a.template_code)
+        if t is None:
+            print(f'Template with code "{a.template_code}" was not found')
+            sys.exit(1)
+
+        try:
+            device.create(template_guid=t.guid, device_certificate=a.cert, duid=a.duid, name=a.name, entity_guid=e.guid)
+        except ConflictResponseError as cre:
+            print(f'Device with duid "{a.entity}" appears to already exist or there was an error while creating the device. Error was:', cre)
+            sys.exit(2)
+        print("Device created successfully.")
+
+    #######################
+
+
+    def _register_delete_device(ap: argparse.ArgumentParser) -> None:
+        description = \
+            """ 
+            Delete a device that was previously created with REST API.
+            """
+        ap.description = description
+        ap.add_argument(
+            dest="duid",
+            help="Device Unique ID."
+        )
+
+
+    def _process_delete_device(a: argparse.Namespace) -> None:
+        try:
+            device.delete_match_duid(a.duid)
+        except ConflictResponseError as cre:
+            print(f'device with duid "{a.duid}" appears to not exist. Error was:', cre)
+            sys.exit(2)
+        print("Device deleted successfully.")
+
+    #####################################################
 
 
     main_description = \
@@ -83,6 +217,18 @@ def init():
     subparser = subparsers.add_parser('refresh')
     subparser.set_defaults(func=_process_refresh)
     _register_refresh(subparser)
+    subparser = subparsers.add_parser('create-template')
+    subparser.set_defaults(func=_process_create_template)
+    _register_create_template(subparser)
+    subparser = subparsers.add_parser('delete-template')
+    subparser.set_defaults(func=_process_delete_template)
+    _register_delete_template(subparser)
+    subparser = subparsers.add_parser('create-device')
+    subparser.set_defaults(func=_process_create_device)
+    _register_create_device(subparser)
+    subparser = subparsers.add_parser('delete-device')
+    subparser.set_defaults(func=_process_delete_device)
+    _register_delete_device(subparser)
     return parser
 
 def process(argv):

@@ -60,7 +60,7 @@ def authenticate(username: str, password: str) -> None:
     config.write()
 
 def should_refresh() -> bool:
-    return config.token_time + 3600 < _ts_now() and os.environ.get('IOTC_NO_TOKEN_REFRESH') is None
+    return config.token_time + 3600 < _ts_now() and os.environ.get('IOTC_API_NO_TOKEN_REFRESH') is None
 
 
 def refresh() -> None:
