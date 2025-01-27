@@ -15,8 +15,6 @@ def _ts_now():
     return datetime.datetime.now(datetime.timezone.utc).timestamp()
 
 
-
-
 def check() -> None:
     if config.access_token is None:
         raise UsageError("No access token configured. Please configure the API.")
@@ -57,7 +55,9 @@ def authenticate(username: str, password: str) -> None:
     expires_in = response.body.get_object_value("expires_in")
     config.token_time = _ts_now()
     config.token_expiry = config.token_time + expires_in
+    config.username = username
     config.write()
+
 
 def should_refresh() -> bool:
     return config.token_time + 3600 < _ts_now() and os.environ.get('IOTC_API_NO_TOKEN_REFRESH') is None
@@ -94,4 +94,3 @@ def _get_basic_token() -> str:
     response = request(apiurl.ep_auth, "/Auth/basic-token", headers=headers)
     basic_token = response.body.get("data")
     return basic_token
-

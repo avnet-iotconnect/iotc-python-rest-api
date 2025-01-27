@@ -8,7 +8,7 @@ import sys
 
 import avnet.iotconnect.restapi.lib.apiurl as apiurl
 import avnet.iotconnect.restapi.lib.credentials as credentials
-from avnet.iotconnect.restapi.lib import config, template, device, entity
+from avnet.iotconnect.restapi.lib import config, template, device, entity, util
 from avnet.iotconnect.restapi.lib.error import ApiException, ConflictResponseError
 
 
@@ -35,11 +35,11 @@ def init():
             help="your solution key."
         )
         ap.add_argument(
-            "-pf", "--platform", dest="platform", choices=apiurl.PF_CHOICES, default=os.environ.get("IOTC_PF") or apiurl.PF_AWS,
+            "-pf", "--platform", dest="platform", choices=config.PF_CHOICES, default=os.environ.get("IOTC_PF") or config.PF_AWS,
             help='account platform ("aws" for AWS, or "az" for Azure) - or use the IOTC_ENV environment variable.'
         )
         ap.add_argument(
-            "-e", "--env", dest="env", choices=apiurl.ENV_CHOICES, default=os.environ.get("IOTC_ENV") or apiurl.ENV_UAT,
+            "-e", "--env", dest="env", choices=config.ENV_CHOICES, default=os.environ.get("IOTC_ENV") or config.ENV_UAT,
             help='account environment - From settings -> Key Vault in the Web UI'
         )
 
@@ -60,7 +60,6 @@ def init():
             and allow you to run this tool without authenticating for 24 hours.
             """
         ap.description = description
-
 
     def _process_refresh(a: argparse.Namespace) -> None:
         credentials.refresh()
@@ -141,7 +140,6 @@ def init():
             help="Template code."
         )
 
-
     def _process_delete_template(a: argparse.Namespace) -> None:
         try:
             template.delete_match_code(a.code)
@@ -175,7 +173,6 @@ def init():
 
     #######################
 
-
     def _register_delete_device(ap: argparse.ArgumentParser) -> None:
         description = \
             """ 
@@ -187,7 +184,6 @@ def init():
             help="Device Unique ID."
         )
 
-
     def _process_delete_device(a: argparse.Namespace) -> None:
         try:
             device.delete_match_duid(a.duid)
@@ -196,8 +192,44 @@ def init():
             sys.exit(2)
         print("Device deleted successfully.")
 
-    #####################################################
+    #######################
 
+    def _register_generate_cert(ap: argparse.ArgumentParser) -> None:
+        description = \
+            """ 
+            Create a self-signed private key and a certificate
+            in the user's current working directory with the following names by default:
+            device-pkey.pem: Private key generated with secp256r1 (prime256v1) EC curve
+            device-cert.pem: A certificate based on this private key.
+            DUID will be used (in combination with CPID as prefix) to generate a certificate that will match your device's MQTT Client ID 
+            """
+        ap.description = description
+        ap.add_argument(
+            dest="duid",
+            help='Device Unique ID (DUID) to use for this certificate. See the command description for more info.'
+        )
+        ap.add_argument(
+            "--cert-file", dest="cert_file", default="device-cert.pem",
+            help='Optional file name and path to write the certificate key to. Default is device-cert.pem.'
+        )
+        ap.add_argument(
+            "--pkey-file", dest="pkey_file", default="device-pkey.pem",
+            help='Optional file name and path to write the private key to. Default is device-pkey.pem.'
+        )
+
+    def _process_generate_cert(a: argparse.Namespace) -> None:
+        try:
+            pkey_pem, cert_pem = util.generate_ec_cert_and_pkey(a.duid)
+            with open(a.pkey_file, 'w') as pk_file:
+                pk_file.write(pkey_pem)
+            with open(a.cert_file, 'w') as cert_file:
+                cert_file.write(cert_pem)
+        except RuntimeError as ex:
+            print("There was a problem while writing the files: ", ex)
+
+        print(f'Certificate and private key were written to "{a.cert_file}" and "{a.pkey_file}".')
+
+    #####################################################
 
     main_description = \
         """ 
@@ -229,7 +261,11 @@ def init():
     subparser = subparsers.add_parser('delete-device')
     subparser.set_defaults(func=_process_delete_device)
     _register_delete_device(subparser)
+    subparser = subparsers.add_parser('generate-cert')
+    subparser.set_defaults(func=_process_generate_cert)
+    _register_generate_cert(subparser)
     return parser
+
 
 def process(argv):
     args = _parser.parse_args(argv)
@@ -241,5 +277,3 @@ def process(argv):
 
 
 _parser = init()
-
-

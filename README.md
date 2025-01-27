@@ -62,7 +62,7 @@ Or even invoke the basic CLI with a simple python3 command without a script, for
 python3 -c "import sys; import avnet.iotconnect.restapi.cli.main as cli; cli.process(sys.argv[1:])" --help
 ```
 
-Once the CLI is configured, you can run this basic example to create and device in your account:
+Once the CLI is configured, you can run this basic example to create a device in your account:
 ```shell
 TODO
 ```

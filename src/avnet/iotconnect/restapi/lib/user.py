@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from http import HTTPStatus
 from typing import Optional
 
-from . import apiurl
+from . import apiurl, config
 from .apirequest import request
 from .error import UsageError
 
@@ -17,6 +17,7 @@ class User:
     userId: str
     companyGuid: str
 
+
 def query(query_str: str = '[*]') -> list[User]:
     response = request(apiurl.ep_user, '/User')
     return response.data.get(query_str, dc=User)
@@ -25,6 +26,14 @@ def query(query_str: str = '[*]') -> list[User]:
 def query_expect_one(query_str: str = '[*]') -> Optional[User]:
     response = request(apiurl.ep_user, '/User')
     return response.data.get_one(query_str, dc=User)
+
+
+def get_own_user() -> Optional[User]:
+    """ Lookup the currently logged-in user """
+    if config.username is None or len(config.username) == 0:
+        raise UsageError('get_by_email: The user is not logged in')
+    response = request(apiurl.ep_user, f'/User/{config.username}/availability', codes_ok=[HTTPStatus.NO_CONTENT])
+    return response.data.get_one(dc=User)
 
 
 def get_by_email(email: str) -> Optional[User]:
@@ -39,5 +48,3 @@ def get_by_guid(guid: str) -> Optional[User]:
     """ Lookup a template by GUID """
     response = request(apiurl.ep_user, f'/User/{guid}')
     return response.data.get_one(dc=User)
-
-

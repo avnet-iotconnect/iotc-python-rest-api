@@ -139,7 +139,7 @@ def create_from_json_str(
     # now back to converting it into a file for the upload
     with io.StringIO() as string_file:
         # separators = compress the json
-        new_template_str = json.dumps(template_obj, separators = (',', ':'))
+        new_template_str = json.dumps(template_obj, separators=(',', ':'))
         # try fix the template delete issue with some invalid xml when deleting by forcing windows newlines
         string_file.write(new_template_str.replace('\r\n', '\n').replace('\n', '\r\n'))
         string_file.seek(0)  # reset the file pointer after writing

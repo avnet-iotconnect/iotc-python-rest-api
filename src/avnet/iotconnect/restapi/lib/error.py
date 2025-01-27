@@ -18,11 +18,13 @@ class ResponseError(ApiException):
     def __init__(self, message: str, http_status: int):
         super().__init__(message, http_status)
 
+
 class AuthError(ApiException):
     """ Authentication related error """
 
     def __init__(self, message: str, http_status: int = HTTPStatus.UNAUTHORIZED):
         super().__init__(message, http_status)
+
 
 class ConflictResponseError(ApiException):
     """
@@ -37,6 +39,7 @@ class ConflictResponseError(ApiException):
     def __init__(self, message: str, http_status: int = HTTPStatus.CONFLICT):
         super().__init__(message, http_status)
 
+
 class NotFoundResponseError(ApiException):
     """
     These errors should be internally handled in most cases of get() functions b returning None to the user.
@@ -44,6 +47,7 @@ class NotFoundResponseError(ApiException):
 
     def __init__(self, message: str, http_status: int = HTTPStatus.NOT_FOUND):
         super().__init__(message, http_status)
+
 
 class UsageError(ValueError):
     """ Incorrect usage. Missing argument etc. """

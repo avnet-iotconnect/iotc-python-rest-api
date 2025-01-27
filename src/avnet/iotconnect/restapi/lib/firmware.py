@@ -18,10 +18,12 @@ class Firmware:
     hardware: str
     isDeprecated: bool
 
+
 @dataclass
 class FirmwareCreateResult:
     newId: str
     firmwareUpgradeGuid: str
+
 
 def _validate_firmware_name(firmware_name: str):
     if firmware_name is None:
@@ -101,6 +103,7 @@ def create(
     response = request(apiurl.ep_firmware, '/Firmware', json=data)
     return response.data.get_one(dc=FirmwareCreateResult)
 
+
 def deprecate_match_guid(guid: str) -> None:
     """
     Delete the firmware with given template guid.
@@ -126,4 +129,3 @@ def deprecate_match_name(name: str) -> None:
     if fw is None:
         raise FileNotFoundError(f'delete_match_name: Firmware with name "{name}" not found')
     deprecate_match_guid(fw.guid)
-

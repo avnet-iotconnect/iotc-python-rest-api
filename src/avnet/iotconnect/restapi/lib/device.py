@@ -23,16 +23,17 @@ class Device:
     deviceTemplateGuid: str
     messageVersion: str
 
+
 @dataclass
 class DeviceCreateResult:
-        # noinspection SpellCheckingInspection
-        newid: str
-        entityGuid: str
-        uniqueId: str
-        activeDeviceCount: int
-        inActiveDeviceCount: int
-        ggDeviceScript: Optional[str] = field(default=None)
-        parentUniqueId: Optional[str] = field(default=None)
+    # noinspection SpellCheckingInspection
+    newid: str
+    entityGuid: str
+    uniqueId: str
+    activeDeviceCount: int
+    inActiveDeviceCount: int
+    ggDeviceScript: Optional[str] = field(default=None)
+    parentUniqueId: Optional[str] = field(default=None)
 
 
 def query(query_str: str = '[*]') -> list[Device]:
@@ -43,6 +44,7 @@ def query(query_str: str = '[*]') -> list[Device]:
 def query_expect_one(query_str: str = '[*]') -> Device:
     response = request(apiurl.ep_device, '/Device')
     return response.data.get_one(query_str, dc=Device)
+
 
 def get_by_guid(duid) -> Device:
     """Lookup a device by uniqueId"""
@@ -63,7 +65,7 @@ def get_by_duid(duid) -> Device:
 def create(
         template_guid: str,
         duid: str,
-        device_certificate: Optional[Union[str,bytes]] = None,
+        device_certificate: Optional[Union[str, bytes]] = None,
         name: Optional[str] = None,
         is_ca_auth=False,
         entity_guid: Optional[str] = None
@@ -125,6 +127,7 @@ def delete_match_guid(guid: str) -> None:
         raise UsageError('delete_match_guid: The device guid argument is missing')
     response = request(apiurl.ep_device, f'/Device/{guid}', method=HTTPMethod.DELETE)
     response.data.get_one()  # we expect data to be empty -- 'data': [] on success
+
 
 def delete_match_duid(duid: str) -> None:
     """

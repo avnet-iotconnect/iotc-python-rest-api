@@ -121,6 +121,7 @@ def upload(upgrade_guid: str, file_path: str, file_name: Optional[str] = None, f
         response = request(apiurl.ep_file, '/File', method=HTTPMethod.POST, files=fw_file, data=data)
         return response.data.get_one(dc=UploadResult)
 
+
 def publish(upgrade_guid: str) -> None:
     """
     Uploads the update file that can be pushed to device.

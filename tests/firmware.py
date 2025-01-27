@@ -1,5 +1,5 @@
 import avnet.iotconnect.restapi.lib.template as template
-from avnet.iotconnect.restapi.lib import firmware, upgrade, certgen, device
+from avnet.iotconnect.restapi.lib import firmware, upgrade, util, device
 from avnet.iotconnect.restapi.lib.error import ConflictResponseError
 
 TEMPLATE_CODE = 'apidemo1'
@@ -35,7 +35,7 @@ d = device.get_by_duid(DUID)
 if d is not None:
     print('delete=', device.delete_match_guid(d.guid))
 
-pkey_pem, cert_pem = certgen.generate(DUID)
+pkey_pem, cert_pem = util.generate_ec_cert_and_pkey(DUID)
 with open('device-pkey.pem', 'w') as pk_file:
     pk_file.write(pkey_pem)
 with open('device-cert.pem', 'w') as cert_file:

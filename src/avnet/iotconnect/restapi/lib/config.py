@@ -10,7 +10,16 @@ from typing import Optional
 
 import platformdirs
 
-CONFIG_VERSION = "1.0" # for future compatibility and potential conversion
+# Environment constants
+PF_AZ = "az"
+PF_AWS = "aws"
+PF_CHOICES = [PF_AWS, PF_AZ]
+ENV_UAT = "uat"
+ENV_PROD = "prod"
+ENV_AVNET = "avnet" # this is the UAT Avnet instance name
+ENV_CHOICES = [ENV_UAT, ENV_PROD, ENV_AVNET]
+
+CONFIG_VERSION = "1.0"  # for future compatibility and potential conversion
 
 SECTION_DEFAULT = 'default'
 SECTION_SETTINGS = 'settings'
@@ -19,6 +28,7 @@ SECTION_USER = 'user'
 # -- BEGIN CONFIGURABLE VALUES --- #
 
 # credentials and environment setup ------
+username: Optional[str] = os.environ.get('IOTC_USER') or None  # Recorded in settings for purposes of looking up the current user
 pf: Optional[str] = os.environ.get('IOTC_PF') or "aws"
 env: Optional[str] = os.environ.get('IOTC_ENV') or "poc"
 skey: Optional[str] = os.environ.get('IOTC_SKEY')
@@ -76,6 +86,9 @@ def init() -> None:
         refresh_token = section['refresh_token']
         token_time = int(section['token_time'])
         token_expiry = int(section['token_expiry'])
+        from avnet.iotconnect.restapi.lib import apiurl
+        apiurl.configure_using_discovery()
+
 
 
 def is_valid() -> bool:
@@ -93,6 +106,7 @@ def write() -> bool:
 
             global skey, pf, env, access_token, refresh_token, token_time, token_expiry
             section = get_section(SECTION_USER)
+            section['username'] = username
             section['pf'] = pf
             section['env'] = env
             section['skey'] = skey
@@ -114,6 +128,7 @@ def get_section(section: str) -> MutableMapping:
     if not _cp.has_section(section):
         _cp[section] = {}
     return _cp[section]
+
 
 # automatically init when loading this module
 init()
