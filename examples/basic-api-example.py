@@ -5,7 +5,7 @@
 import avnet.iotconnect.restapi.lib.entity as entity
 import avnet.iotconnect.restapi.lib.template as template
 import avnet.iotconnect.restapi.lib.user as user
-from avnet.iotconnect.restapi.lib import token
+from avnet.iotconnect.restapi.lib import token, config
 from avnet.iotconnect.restapi.lib.error import InvalidActionError
 
 """
@@ -14,9 +14,10 @@ This example prints some basic user information, creates a device template and d
 To learn more about API examples, refer to the (unit) tests directory in this repo. 
 """
 
-print('Username:', token.decode_access_token().user.id)
+print('Username:', config.username)
+print('User GUID:', token.decode_access_token().user.id)
 print('CPID:', token.decode_access_token().user.cpId)
-print('Root EntityL', entity.get_root_entity())
+print('Root Entity:', entity.get_root_entity())
 print("My User Details:", user.get_own_user())
 
 try:
