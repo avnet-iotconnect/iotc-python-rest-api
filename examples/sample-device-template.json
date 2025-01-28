@@ -1,0 +1,49 @@
+{
+    "code": "apisample",
+    "name": "Python REST Api Sample",
+    "authType": 2,
+    "attributes": [
+        {
+            "name": "version",
+            "type": "STRING",
+            "description": "",
+            "unit": "",
+            "aggregateTypes": []
+        },
+        {
+            "name": "sdk_version",
+            "type": "STRING",
+            "description": "",
+            "unit": "",
+            "aggregateTypes": []
+        },
+        {
+            "name": "random",
+            "type": "DECIMAL",
+            "description": "",
+            "unit": "",
+            "aggregateTypes": []
+        }
+    ],
+    "commands": [
+        {
+            "name": "sample-command",
+            "command": "sample-command",
+            "requiredParam": true,
+            "requiredAck": true,
+            "isOTACommand": false
+        }
+    ],
+    "messageVersion": "2.1",
+    "msgCode": "43WPJCX",
+    "greenGrass": "0",
+    "wireless": "0",
+    "properties": {
+        "description": "IoTConnect Python API sample device template",
+        "dataFrequency": "60",
+        "fileSupport": false
+    },
+    "_meta": {
+        "version": "2.0"
+    }
+}

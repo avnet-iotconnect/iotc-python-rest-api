@@ -1,0 +1,54 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "iotconnect-rest-api"
+dynamic = ["version"]
+description = "Avnet IoTConnect Rest API"
+readme = "README.md"
+requires-python = ">=3.9"
+authors = [
+    { name = "Nik Markovic", email = "nikola.markovic@avnet.com" },
+]
+
+keywords = [
+    "IoTconnect",
+    "AWS",
+    "IoTCore",
+    "Azure",
+    "IoTHub",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Natural Language :: English",
+    "Operating System :: MacOS :: MacOS X",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Communications",
+    "Topic :: Internet",
+]
+dependencies = [
+    "requests>=2.32.3",
+    "platformdirs>=4.3.6",
+    "jmespath>=1.0.1",
+    "cryptography>=44.0.0"
+]
+
+[project.urls]
+Homepage = "https://github.com/avnet-iotconnect/iotc-python-rest-api"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.dynamic]
+version = {attr = "avnet.iotconnect.restapi.__version__"}
+
