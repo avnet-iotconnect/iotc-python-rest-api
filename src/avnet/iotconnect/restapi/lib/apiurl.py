@@ -35,7 +35,7 @@ def configure_using_discovery():
     # do a low level request here without using request local module in order to avoid circular dependencies
     response = requests.request(method=HTTPMethod.GET, url=f'https://discovery.iotconnect.io/api/uisdk/solutionkey/{config.skey}/env/{config.env}', params={'version': version, 'pf':config.pf}, headers={})
     if response.status_code != 200:
-        raise ConfigError(f'Unable to resolve API URLS for platform={config.pf} env={config.env} SKEY={config.skey}')
+        raise ConfigError(f'Unable to resolve API URLS for platform={config.pf} env={config.env} SKEY={config.skey}. Response code {response.status_code}, body: {response.text}')
 
     d = response.json().get('data')
 

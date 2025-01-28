@@ -15,7 +15,7 @@ from .error import UsageError, ConflictResponseError, NotFoundResponseError
 class User:
     userGuid: str
     userId: str
-    companyCpid: str
+    companyCpid: str # It is recommended to use the token module to decode the access token to get this info
 
 
 def query(query_str: str = '[*]', params: Optional[Dict[str, any]] = None) -> list[User]:
