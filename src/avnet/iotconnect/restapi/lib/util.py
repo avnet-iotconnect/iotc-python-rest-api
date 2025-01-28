@@ -3,6 +3,8 @@
 # Authors: Nikola Markovic <nikola.markovic@avnet.com> et al.
 
 import datetime
+import json
+import os
 from typing import Tuple
 
 from cryptography import x509
@@ -22,7 +24,26 @@ def get_mqtt_client_id(duid: str) -> str:
     if is_dedicated_instance():
         return duid
     else:
-        return f"{user.get_own_user().companyGuid}-{duid}"
+        return f"{user.get_own_user().companyCpid}-{duid}"
+
+def generate_device_json(duid: str, auth_type: int = 2) -> str:
+    """
+    Generates a config json string that should be written to iotcDeviceConfig.json when running a python SDK
+    :param duid: Device Uniqiue ID
+    :param auth_type: 2 for Self-signed. 1 for CA-Signed authentication.
+    :return:
+    """
+    device_json = {
+        "ver": "2.1",
+        "pf": config.pf,
+        "cpid": user.get_own_user().companyCpid,
+        "env": config.env,
+        "uid": duid,
+        "did": get_mqtt_client_id(duid),
+        "at": auth_type,
+    }
+    return json.dumps(device_json, indent=4) + os.linesep
+
 
 def generate_ec_cert_and_pkey(duid: str, validity_days: int = 3650, curve=ec.SECP256R1()) -> Tuple[str, str]:
     """ Generates an Elliptic Curve private key and a self-signed certificate signed with the private key.

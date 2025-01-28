@@ -4,11 +4,11 @@
 
 from dataclasses import dataclass
 from http import HTTPMethod, HTTPStatus
-from typing import Optional
+from typing import Optional, Dict
 
 from . import apiurl, upgrade
 from .apirequest import request
-from .error import UsageError
+from .error import UsageError, ConflictResponseError, NotFoundResponseError
 
 
 @dataclass
@@ -34,14 +34,9 @@ def _validate_firmware_name(firmware_name: str):
         raise UsageError('"firmware_name" parameter must be upper case and contain only alphanumeric characters')
 
 
-def query(query_str: str = '[*]') -> list[Firmware]:
+def query(query_str: str = '[*]', params: Optional[Dict[str, any]] = None) -> list[Firmware]:
     response = request(apiurl.ep_firmware, '/Firmware')
-    return response.data.get(query_str, dc=Firmware)
-
-
-def query_expect_one(query_str: str = '[*]') -> Optional[Firmware]:
-    response = request(apiurl.ep_firmware, '/Firmware')
-    return response.data.get_one(query_str, dc=Firmware)
+    return response.data.get(query_str=query_str, params=params, dc=Firmware)
 
 
 def get_by_name(name: str) -> Optional[Firmware]:
@@ -56,7 +51,11 @@ def get_by_guid(guid: str) -> Optional[Firmware]:
     """ Lookup a firmware by GUID """
     if guid is None or len(guid) == 0:
         raise UsageError('get_by_guid: The firmware guid argument is missing')
-    return query_expect_one(f"[?guid==`{guid}`]")
+    try:
+        response = request(apiurl.ep_device, f'/Firmware/{guid}')
+        return response.data.get_one(dc=Firmware)
+    except NotFoundResponseError:
+        return None
 
 
 def create(
@@ -127,5 +126,5 @@ def deprecate_match_name(name: str) -> None:
     _validate_firmware_name(name)
     fw = get_by_name(name)
     if fw is None:
-        raise FileNotFoundError(f'delete_match_name: Firmware with name "{name}" not found')
+        raise NotFoundResponseError(f'delete_match_name: Firmware with name "{name}" not found')
     deprecate_match_guid(fw.guid)

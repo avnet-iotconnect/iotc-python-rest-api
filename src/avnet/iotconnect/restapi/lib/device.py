@@ -4,11 +4,11 @@
 
 from dataclasses import dataclass, field
 from http import HTTPMethod
-from typing import Optional, Union
+from typing import Optional, Union, Dict
 
 from . import apiurl, entity
 from .apirequest import request
-from .error import UsageError, NotFoundResponseError
+from .error import UsageError, NotFoundResponseError, ConflictResponseError
 
 
 @dataclass
@@ -36,30 +36,31 @@ class DeviceCreateResult:
     parentUniqueId: Optional[str] = field(default=None)
 
 
-def query(query_str: str = '[*]') -> list[Device]:
-    response = request(apiurl.ep_device, "/Device")
-    return response.data.get(query_str, dc=Device)
+def query(query_str: str = '[*]', params: Optional[Dict[str, any]] = None) -> list[Device]:
+    response = request(apiurl.ep_firmware, '/Device')
+    return response.data.get(query_str=query_str, params=params, dc=Device)
 
 
-def query_expect_one(query_str: str = '[*]') -> Device:
-    response = request(apiurl.ep_device, '/Device')
-    return response.data.get_one(query_str, dc=Device)
+def get_by_guid(guid:str) -> Optional[Device]:
+    """Lookup a device by device GUID"""
+    if guid is None:
+        raise UsageError('get_by_duid: The device Unique ID (DUID) argument is missing')
+    try:
+        response = request(apiurl.ep_device, f'/Device/{guid}')
+        return response.data.get_one(dc=Device)
+    except ConflictResponseError:
+        return None
 
 
-def get_by_guid(duid) -> Device:
+def get_by_duid(duid:str) -> Optional[Device]:
     """Lookup a device by uniqueId"""
     if duid is None:
         raise UsageError('get_by_duid: The device Unique ID (DUID) argument is missing')
-    response = request(apiurl.ep_device, f'/Device/{duid}')
-    return response.data.get_one(dc=Device)
-
-
-def get_by_duid(duid) -> Device:
-    """Lookup a device by uniqueId"""
-    if duid is None:
-        raise UsageError('get_by_duid: The device Unique ID (DUID) argument is missing')
-    response = request(apiurl.ep_device, f'/Device/uniqueId/{duid}')
-    return response.data.get_one(dc=Device)
+    try:
+        response = request(apiurl.ep_device, f'/Device/uniqueId/{duid}')
+        return response.data.get_one(dc=Device)
+    except ConflictResponseError:
+        return None
 
 
 def create(

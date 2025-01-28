@@ -9,6 +9,20 @@
             "description": "",
             "unit": "",
             "aggregateTypes": []
+        },
+        {
+            "name": "sdk_version",
+            "type": "STRING",
+            "description": "",
+            "unit": "",
+            "aggregateTypes": []
+        },
+        {
+            "name": "random",
+            "type": "DECIMAL",
+            "description": "",
+            "unit": "",
+            "aggregateTypes": []
         }
     ],
     "commands": [

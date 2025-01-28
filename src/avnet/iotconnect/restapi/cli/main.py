@@ -35,11 +35,11 @@ def init():
             help="your solution key."
         )
         ap.add_argument(
-            "-pf", "--platform", dest="platform", choices=config.PF_CHOICES, default=os.environ.get("IOTC_PF") or config.PF_AWS,
+            "--pf", "--platform", dest="platform", choices=config.PF_CHOICES, default=os.environ.get("IOTC_PF") or config.PF_AWS,
             help='account platform ("aws" for AWS, or "az" for Azure) - or use the IOTC_ENV environment variable.'
         )
         ap.add_argument(
-            "-e", "--env", dest="env", choices=config.ENV_CHOICES, default=os.environ.get("IOTC_ENV") or config.ENV_UAT,
+            "-e", "--env", dest="env", choices=config.ENV_CHOICES, default=os.environ.get("IOTC_ENV") or config.ENV_POC,
             help='account environment - From settings -> Key Vault in the Web UI'
         )
 
@@ -115,8 +115,8 @@ def init():
             help="Device Unique ID."
         )
         ap.add_argument(
-            dest="cert", default=None,
-            help="Path to a pem certificate of your device. You can generate one using the generate-cert command"
+            "-c", "--cert", dest="cert", default="device-cert.pem",
+            help='Path to a pem certificate of your device. You can generate one using the generate-cert command. Default is "device-cert.pem"'
         )
         ap.add_argument(
             "-n", "--name", dest="name", default=None,
@@ -188,7 +188,7 @@ def init():
         try:
             device.delete_match_duid(a.duid)
         except ConflictResponseError as cre:
-            print(f'device with duid "{a.duid}" appears to not exist. Error was:', cre)
+            print(f'Device with duid "{a.duid}" appears to not exist or cannot be deleted. Error was:', cre)
             sys.exit(2)
         print("Device deleted successfully.")
 
@@ -229,6 +229,33 @@ def init():
 
         print(f'Certificate and private key were written to "{a.cert_file}" and "{a.pkey_file}".')
 
+    #######################
+
+    def _register_generate_device_json(ap: argparse.ArgumentParser) -> None:
+        description = \
+            """ 
+            Generate iotcDeviceConfig.json that can be used along with a certificate and a private key to configure a Python SDK
+            """
+        ap.description = description
+        ap.add_argument(
+            dest="duid",
+            help='Device Unique ID (DUID).'
+        )
+        ap.add_argument(
+            "--file", dest="file", default="iotcDeviceConfig.json",
+            help='Optional file name and path to write the json to. Default is "iotcDeviceConfig.json".'
+        )
+
+    def _process_generate_device_json(a: argparse.Namespace) -> None:
+        try:
+            device_json = util.generate_device_json(a.duid)
+            with open(a.file, 'w') as f:
+                f.write(device_json)
+        except RuntimeError as ex:
+            print("There was a problem while writing the file: ", ex)
+
+        print(f'Device config JSON written to "{a.file}".')
+
     #####################################################
 
     main_description = \
@@ -264,6 +291,9 @@ def init():
     subparser = subparsers.add_parser('generate-cert')
     subparser.set_defaults(func=_process_generate_cert)
     _register_generate_cert(subparser)
+    subparser = subparsers.add_parser('generate-device-json')
+    subparser.set_defaults(func=_process_generate_device_json)
+    _register_generate_device_json(subparser)
     return parser
 
 

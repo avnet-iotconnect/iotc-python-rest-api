@@ -25,8 +25,19 @@ class AuthError(ApiException):
     def __init__(self, message: str, http_status: int = HTTPStatus.UNAUTHORIZED):
         super().__init__(message, http_status)
 
+class InvalidActionError(ApiException):
+    """
+    The REST API seems to have a flaw where when attempting to delete a resource of one type, for example,
+    returns Not Found but deleting a different resource type will result in Conflict.
+    This error wraps NotFound and Conflict together for invalid attempts to for example delete a device or template and such
+    in order to make it easier for the application to catch these errors with some consistency.
+    """
 
-class ConflictResponseError(ApiException):
+    def __init__(self, message: str, http_status):
+        super().__init__(message, http_status)
+
+
+class ConflictResponseError(InvalidActionError):
     """
     This error is returned when attempt to create a resource that already exists
     or delete a resource that has other resources associated with it (eg. a template
@@ -40,7 +51,7 @@ class ConflictResponseError(ApiException):
         super().__init__(message, http_status)
 
 
-class NotFoundResponseError(ApiException):
+class NotFoundResponseError(InvalidActionError):
     """
     These errors should be internally handled in most cases of get() functions b returning None to the user.
     """

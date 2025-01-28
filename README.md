@@ -47,7 +47,7 @@ In order to run this project, it is recommended to set the environment variables
 With this, you can simply run the cmd.py script form the examples with:
 
 ```shell
-python3 iotccli.py
+python3 iotccli.py --help
 ```
 
 You can specify explicitly, or override the environment values by passing command line arguments to the configure tool. See:
@@ -56,19 +56,43 @@ You can specify explicitly, or override the environment values by passing comman
 python3 iotccli.py configure --help
 ```
 
-Or even invoke the basic CLI with a simple python3 command without a script, for example to get help on the CLI interface and list available commands:
+It is still advisable to use the environment variable for your password 
+on Linux systems. Commands would be recorded in your shell history by default,
+which could present a security risk.
+
+You can also invoke the basic CLI with a simple python3 command without a script, for example to get help on the CLI interface and list available commands:
 
 ```shell
 python3 -c "import sys; import avnet.iotconnect.restapi.cli.main as cli; cli.process(sys.argv[1:])" --help
 ```
 
-Once the CLI is configured, you can run this basic example to create a device in your account:
+Once the CLI is configured, API can be invoked to, for example, to create a device in your account:
+
 ```shell
-TODO
+# create the template and use a different template code and name than the one in the template json:
+./iotccli.sh create-template ./sample-device-template.json --code=apidemo --name=apidemo
+# prepare a new automatically generated certificate for our device that we will create
+# this step creates device-cert.pem and device-pkey.pem
+./iotccli.sh generate-cert apidemo-device01
+# create a new device apidemo-device01 with the generated cert (default cert from previous step picked up)
+./iotccli.sh create-device apidemo apidemo-device01
 ```
-It is still advisable to use the environment variable for your password 
-on Linux systems. Commands would be recorded in your shell history by default,
-which could present a security risk.
+
+At this point, we can download run the python SDK:
+
+```shell
+# use curl or wget to download the SDK package
+curl -sOJ 'https://downloads.iotconnect.io/sdk/python/iotconnect_sdk_lite-1.0.0-py3-none-any.whl
+python3 -m pip install iotconnect_sdk_lite-1.0.0-py3-none-any.whl
+python3 ./lite-sdk-example.py
+```
+
+When done, you should delete this test device, as you will not be able to use the IoTConnect Web UI to delete it:
+
+```shell
+./iotccli.sh delete-device apidemo-device01
+./iotccli.sh delete-template apidemo-device01
+```
 
 
 ### Special Environment Variables 

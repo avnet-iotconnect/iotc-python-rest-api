@@ -6,7 +6,7 @@ import io
 import json
 from dataclasses import dataclass
 from http import HTTPMethod
-from typing import Optional
+from typing import Optional, Dict
 
 from . import apiurl
 from .apirequest import request
@@ -46,17 +46,9 @@ def _validate_template_code(code: str):
     elif not code.isalnum():
         raise UsageError('"code" parameter must contain only alphanumeric characters')
 
-
-def query(query_str: str = '[*]') -> list[Template]:
-    response = request(apiurl.ep_device, '/device-template')
-
-    return response.data.get(query_str, dc=Template)
-
-
-def query_expect_one(query_str: str = '[*]') -> Optional[Template]:
-    response = request(apiurl.ep_device, '/device-template')
-    return response.data.get_one(query_str, dc=Template)
-
+def query(query_str: str = '[*]', params: Optional[Dict[str,any]] = None) -> list[Template]:
+    response = request(apiurl.ep_firmware, '/device-template')
+    return response.data.get(query_str=query_str, params=params, dc=Template)
 
 def get(params: dict[str, any]) -> Optional[Template]:
     try:
@@ -81,7 +73,7 @@ def get_by_guid(guid: str) -> Optional[Template]:
     try:
         response = request(apiurl.ep_device, f'/device-template/{guid}')
         return response.data.get_one(dc=Template)
-    except ConflictResponseError:
+    except NotFoundResponseError:
         return None
 
 

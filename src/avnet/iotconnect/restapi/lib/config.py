@@ -10,14 +10,16 @@ from typing import Optional
 
 import platformdirs
 
+from . import apiurl
+
 # Environment constants
 PF_AZ = "az"
 PF_AWS = "aws"
 PF_CHOICES = [PF_AWS, PF_AZ]
-ENV_UAT = "uat"
+ENV_POC = "poc"
 ENV_PROD = "prod"
 ENV_AVNET = "avnet" # this is the UAT Avnet instance name
-ENV_CHOICES = [ENV_UAT, ENV_PROD, ENV_AVNET]
+ENV_CHOICES = [ENV_POC, ENV_PROD, ENV_AVNET]
 
 CONFIG_VERSION = "1.0"  # for future compatibility and potential conversion
 
@@ -86,7 +88,7 @@ def init() -> None:
         refresh_token = section['refresh_token']
         token_time = int(section['token_time'])
         token_expiry = int(section['token_expiry'])
-        from avnet.iotconnect.restapi.lib import apiurl
+
         apiurl.configure_using_discovery()
 
 

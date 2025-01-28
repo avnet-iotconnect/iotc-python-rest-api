@@ -3,18 +3,20 @@ import sys
 
 from avnet.iotconnect.restapi.lib import user
 
-username=os.environ.get('IOTC_USER')
+u = user.get_own_user()
+print("get_own_user", u)
 
-if username is None:
-    print("Must set IOTC_USER in env")
-    sys.exit(1)
 
-print(user.get_own_user())
+print("get_by_guid", user.get_by_guid(u.userGuid))
 
-u = user.get_by_email(username)
+print("CPID:", u.companyCpid)
+
+u = user.get_by_email("does@not.exist.com")
 print("get_by_email", u)
+if u is not None:
+    raise Exception("get_by_email: Test failed!")
 
-print("get_by_guid", user.get_by_guid(u.guid))
-
-print("CPID:", u.companyGuid)
-
+u = user.get_by_guid('DEADB33F-1111-1111-1111-00000DEADB33F')
+print("get_by_guid", u)
+if u is not None:
+    raise Exception("get_by_guid: Test failed!")

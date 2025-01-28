@@ -86,7 +86,7 @@ class Response:
         except requests.exceptions.JSONDecodeError:
             if config.api_trace_enabled:
                 print("Raw Response:", response)
-            if self.status != HTTPStatus.NO_CONTENT:
+            if self.status not in (HTTPStatus.NO_CONTENT.value, HTTPStatus.NOT_FOUND.value):
                 raise ApiException("API request failed. Status: %d (%s)" % (self.status, HTTPStatus(self.status).phrase), self.status)
             else:
                 self.body.value = []
@@ -114,16 +114,24 @@ class Response:
                         message += str(e) + " "
 
                 # differentiate between these cases for better error handling
-                if self.status == 401:
+                if self.status == HTTPStatus.FORBIDDEN.value:
                     raise AuthError(message)
-                elif self.status == 409:
+                elif self.status == HTTPStatus.CONFLICT.value:
                     raise ConflictResponseError(message)
-                elif self.status == 404:
+                elif self.status == HTTPStatus.NOT_FOUND.value:
                     raise NotFoundResponseError(message)
                 else:
                     raise ResponseError(message, self.status)
             else:
-                raise ResponseError("Bad HTTP response status: " + str(self.status), self.status)
+                # the response body is missing so we give a generic problem
+                if self.status == HTTPStatus.FORBIDDEN.value:
+                    raise AuthError("")
+                elif self.status == HTTPStatus.CONFLICT.value:
+                    raise ConflictResponseError("")
+                elif self.status == HTTPStatus.NOT_FOUND.value:
+                    raise NotFoundResponseError("")
+                else:
+                    raise ResponseError("Bad HTTP response status: " + str(self.status), self.status)
 
 
 def request(

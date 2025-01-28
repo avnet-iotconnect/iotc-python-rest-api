@@ -5,12 +5,16 @@
 import os
 from dataclasses import dataclass
 from http import HTTPMethod
-from typing import Optional
+from typing import Optional, Dict
 
 from . import apiurl, credentials
 from .apirequest import request, Headers
-from .error import UsageError
+from .error import UsageError, ConflictResponseError, NotFoundResponseError
 
+# use these types as "type" query parameter when querying firmwares
+TYPE_RELEASED="released"
+TYPE_DRAFT="draft"
+TYPE_BOTH="both" # either released or draft firmware
 
 @dataclass
 class Upgrade:
@@ -40,30 +44,20 @@ def _validate_version(version: str, what: str):
     elif all(x.isalnum() for x in version.split('.')):
         raise UsageError(f'"{what}" parameter must contain only alphanumeric characters or periods')
 
-
-def query(query_str: str = '[*]') -> list[Upgrade]:
+def query(query_str: str = '[*]', params: Optional[Dict[str,any]] = None) -> list[Upgrade]:
     response = request(apiurl.ep_firmware, '/firmware-upgrade')
-    return response.data.get(query_str, dc=Upgrade)
-
-
-def query_expect_one(query_str: str = '[*]') -> Optional[Upgrade]:
-    response = request(apiurl.ep_firmware, '/firmware-upgrade')
-    return response.data.get_one(query_str, dc=Upgrade)
-
-
-def get_by_name(name: str) -> Optional[Upgrade]:
-    """ Lookup a firmware name - unique template ID supplied during creation """
-    if name is None or len(name) == 0:
-        raise UsageError('get_by_name: The firmware name is missing')
-    return query_expect_one(f"[?name==`{name}`]")
+    return response.data.get(query_str=query_str, params=params, dc=Upgrade)
 
 
 def get_by_guid(guid: str) -> Optional[Upgrade]:
     """ Lookup a firmware by GUID """
     if guid is None or len(guid) == 0:
         raise UsageError('get_by_guid: The firmware guid argument is missing')
-    return query_expect_one(f"[?guid==`{guid}`]")
-
+    try:
+        response = request(apiurl.ep_device, f'/firmware-upgrade/{guid}')
+        return response.data.get_one(dc=Upgrade)
+    except NotFoundResponseError:
+        return None
 
 def create(
         firmware_guid: str,

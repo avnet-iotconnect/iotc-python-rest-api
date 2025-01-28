@@ -1,23 +1,29 @@
 import avnet.iotconnect.restapi.lib.template as template
 from avnet.iotconnect.restapi.lib import firmware, upgrade, util, device
-from avnet.iotconnect.restapi.lib.error import ConflictResponseError
+from avnet.iotconnect.restapi.lib.error import ConflictResponseError, InvalidActionError
 
 TEMPLATE_CODE = 'apidemo1'
 FIRMWARE_NAME = 'APIDEMO1FW'
 DUID='apidemodev01'
 
+# clean up firmware if it is already there
 try:
     firmware.deprecate_match_name(FIRMWARE_NAME)
-except ConflictResponseError as ex:
-    print("Firmware originally not found")
+except InvalidActionError as ex:
+    print("Firmware originally not found and not deleted.")
 
-t = template.get_by_template_code(TEMPLATE_CODE)
-print(t)
-if t is not None:
-    print('get_by_template_code=', t.templateCode)
-    print('get_by_guid=', template.get_by_guid(t.guid))
-    template.delete_match_guid(t.guid)
-    print('Delete success')
+# clean up device if it is already there
+try:
+    device.delete_match_duid(DUID)
+except InvalidActionError:
+    print("Device originally not found and not deleted.")
+
+
+# clean up template if it is already there
+try:
+    device.delete_match_duid(TEMPLATE_CODE)
+except InvalidActionError:
+    print("Template originally not found and not deleted.")
 
 template_create_result = template.create('sample-device-template.json', new_template_code=TEMPLATE_CODE, new_template_name="ApiExample")
 print('create=', template_create_result)
@@ -31,24 +37,17 @@ print('firmware.get_by_guid', firmware.get_by_guid(firmware_create_result.newId)
 
 upgrade.upload(firmware_create_result.firmwareUpgradeGuid, 'test.zip', file_name="x.foo")
 
-d = device.get_by_duid(DUID)
-if d is not None:
-    print('delete=', device.delete_match_guid(d.guid))
-
 pkey_pem, cert_pem = util.generate_ec_cert_and_pkey(DUID)
 with open('device-pkey.pem', 'w') as pk_file:
     pk_file.write(pkey_pem)
 with open('device-cert.pem', 'w') as cert_file:
     cert_file.write(cert_pem)
-
 with open('device-cert.pem', 'r') as file:
     certificate = file.read()
-
-    result = device.create(template_guid=template_guid, duid=DUID, device_certificate=certificate)
-    print('create=', result)
+result = device.create(template_guid=template_guid, duid=DUID, device_certificate=certificate)
+print('create=', result)
 
 upgrade.publish(firmware_create_result.firmwareUpgradeGuid)
-
 
 new_upgrade_create_result = upgrade.create(firmware_guid=firmware_create_result.newId, sw_version= "1.0")
 fw_10_guid=firmware_create_result.firmwareUpgradeGuid

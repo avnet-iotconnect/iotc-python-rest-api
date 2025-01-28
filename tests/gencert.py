@@ -16,7 +16,7 @@ if DUID is None:
         pass
 
 if DUID is None:
-    print("Unable to determine DUID. Please provide iotcDeviceConfig.json")
+    print("Unable to determine DUID. Please provide iotcDeviceConfig.json or set the IOTC_DUID environment variable")
     sys.exit(-1)
 
 pkey_pem, cert_pem = util.generate_ec_cert_and_pkey(DUID)
