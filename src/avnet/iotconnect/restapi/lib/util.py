@@ -23,8 +23,13 @@ T = TypeVar("T") # for deserializing below
 
 def is_dedicated_instance() -> bool:
     """ Utility function for determining whether the MQTT ClientID needs to be prefixed with CPID, for example"""
-    # return config.pf == config.PF_AWS and config.env == config.ENV_PROD
-    return token.decode_access_token().user.isCpidOptional
+
+    is_dedicated = token.decode_access_token().user.isCpidOptional
+    if is_dedicated is not None:
+        return is_dedicated
+    else:
+        # temporary workaround for issue https://avnet.iotconnect.io/support-info/2025012718120357
+        return config.pf == config.PF_AWS and config.env == config.ENV_PROD
 
 
 def get_mqtt_client_id(duid: str) -> str:

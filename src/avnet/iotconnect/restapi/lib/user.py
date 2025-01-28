@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from http import HTTPStatus
 from typing import Optional, Dict
 
-from . import apiurl, config
+from . import apiurl, config, token
 from .apirequest import request
 from .error import UsageError, ConflictResponseError, NotFoundResponseError
 
@@ -25,9 +25,10 @@ def query(query_str: str = '[*]', params: Optional[Dict[str, any]] = None) -> li
 
 def get_own_user() -> Optional[User]:
     """ Lookup the currently logged-in user """
-    if config.username is None or len(config.username) == 0:
+    at = token.decode_access_token()
+    if at is None:
         raise UsageError('get_by_email: The user is not logged in. Please configure the API first.')
-    return get_by_email(config.username)
+    return get_by_guid(at.user.id)
 
 
 def get_by_email(email: str) -> Optional[User]:
