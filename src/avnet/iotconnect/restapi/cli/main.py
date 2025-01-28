@@ -18,29 +18,31 @@ def init():
             """ 
             Configure IoTConnect credentials.
             Credentials from the environment will be used if arguments are not supplied.
-            This action will store the API token into the configuration file
-            and allow you to run this tool without authenticating for 24 hours.            
+            This action will store these settings configuration file
+            and allow you to run this tool without authenticating for 24 hours since
+            last authentication token (automatic) refresh.
+            All arguments are required, but environment variables can be used instead.        
             """
         ap.description = description
         ap.add_argument(
             "-u", "--username", dest="username", default=os.environ.get("IOTC_USER"),
-            help="Your username/email - or use the IOTC_USER environment variable."
+            help="Your account username (email). IOTC_USER environment variable can be used instead."
         )
         ap.add_argument(
             "-p", "--password", dest="password", default=os.environ.get("IOTC_PASS"),
-            help="your password. Be mindful of leaving this password in your OS command history and pass it as IOTC_PASSWORD environment variable instead."
+            help="Your account password. IOTC_PASS environment variable can be used instead."
         )
         ap.add_argument(
             "-s", "--skey", dest="skey", default=os.environ.get("IOTC_SKEY"),
-            help="your solution key."
+            help="Your solution key. IOTC_SKEY environment variable can be used instead."
         )
         ap.add_argument(
             "--pf", "--platform", dest="platform", choices=config.PF_CHOICES, default=os.environ.get("IOTC_PF") or config.PF_AWS,
-            help='account platform ("aws" for AWS, or "az" for Azure) - or use the IOTC_ENV environment variable.'
+            help='account platform ("aws" for AWS, or "az" for Azure). IOTC_PF environment variable can be used instead.'
         )
         ap.add_argument(
             "-e", "--env", dest="env", choices=config.ENV_CHOICES, default=os.environ.get("IOTC_ENV") or config.ENV_POC,
-            help='account environment - From settings -> Key Vault in the Web UI'
+            help='account environment - From settings -> Key Vault in the Web UI. IOTC_ENV environment variable can be used instead.'
         )
 
     def _process_configure(a: argparse.Namespace) -> None:

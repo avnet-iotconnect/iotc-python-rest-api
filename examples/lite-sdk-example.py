@@ -6,6 +6,13 @@ import random
 import sys
 import time
 
+"""
+This simple example can be used to test a device connection created with the API using the example steps in README.md
+with iotc-python-lite-sdk. The SDK can be installed with:
+ pip3 install iotconnect-sdk-lite
+See more info at https://github.com/avnet-iotconnect/iotc-python-lite-sdk
+"""
+
 try:
     from avnet.iotconnect.sdk.lite import Client
 except ModuleNotFoundError:
@@ -15,14 +22,6 @@ except ModuleNotFoundError:
 from avnet.iotconnect.sdk.lite import Client, DeviceConfig, C2dCommand, Callbacks, DeviceConfigError
 from avnet.iotconnect.sdk.lite import __version__ as SDK_VERSION
 from avnet.iotconnect.sdk.sdklib.mqtt import C2dAck, C2dOta
-
-"""
-This simple example can be used to test a device connection with iotc-python-lite-sdk. The SDK can be downloaded with:
-wget -qN 'https://downloads.iotconnect.io/sdk/python/iotconnect_sdk_lite-1.0.0-py3-none-any.whl'
-... or similar.
-
-See more info at https://github.com/avnet-iotconnect/iotc-python-lite-sdk
-"""
 
 APP_VERSION = "1.0"
 

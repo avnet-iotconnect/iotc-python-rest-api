@@ -2,29 +2,42 @@
 # Copyright (C) 2025 Avnet
 # Authors: Nikola Markovic <nikola.markovic@avnet.com> et al.
 
+# The JSON to object mapping was originally created with assistance from OpenAI's ChatGPT.
+# For more information about ChatGPT, visit https://openai.com/
+
 import datetime
 import json
 import os
-from typing import Tuple
+from dataclasses import is_dataclass
+from typing import Tuple, Type, Union, get_type_hints, TypeVar
 
 from cryptography import x509
 from cryptography.hazmat.primitives import serialization, hashes
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.x509.oid import NameOID
 
-from avnet.iotconnect.restapi.lib import config, user
+from avnet.iotconnect.restapi.lib import config, user, token
+
+T = TypeVar("T") # for deserializing below
 
 
 def is_dedicated_instance() -> bool:
-    """ Utility function for determining whether the MQTT ClientID neeeds to be prefixed with CPID, for example"""
-    return config.pf == config.PF_AWS and config.env == config.ENV_PROD
+    """ Utility function for determining whether the MQTT ClientID needs to be prefixed with CPID, for example"""
+
+    is_dedicated = token.decode_access_token().user.isCpidOptional
+    if is_dedicated is not None:
+        return is_dedicated
+    else:
+        # temporary workaround for issue https://avnet.iotconnect.io/support-info/2025012718120357
+        return config.pf == config.PF_AWS and config.env == config.ENV_PROD
+
 
 def get_mqtt_client_id(duid: str) -> str:
     """ If the instance is shared, the DUID needs to be prefixed with CPID to obtain the MQTT Client ID"""
     if is_dedicated_instance():
         return duid
     else:
-        return f"{user.get_own_user().companyCpid}-{duid}"
+        return f"{token.decode_access_token().user.cpId}-{duid}"
 
 def generate_device_json(duid: str, auth_type: int = 2) -> str:
     """
@@ -36,7 +49,7 @@ def generate_device_json(duid: str, auth_type: int = 2) -> str:
     device_json = {
         "ver": "2.1",
         "pf": config.pf,
-        "cpid": user.get_own_user().companyCpid,
+        "cpid": token.decode_access_token().user.cpId,
         "env": config.env,
         "uid": duid,
         "did": get_mqtt_client_id(duid),
@@ -82,3 +95,48 @@ def generate_ec_cert_and_pkey(duid: str, validity_days: int = 3650, curve=ec.SEC
     )
 
     return key_pem.decode('ascii'), cert_pem.decode('ascii')
+
+
+
+
+def _is_optional_or_dataclass(field_type, value):
+    """
+    Check if a field type is either an Optional or a dataclass.
+    """
+    if hasattr(field_type, '__origin__') and field_type.__origin__ is Union:
+        # Check for Optional[Type]
+        inner_types = field_type.__args__
+        if len(inner_types) == 2 and type(None) in inner_types:
+            inner_type = [t for t in inner_types if t is not type(None)][0]
+            return is_dataclass(inner_type)
+    return is_dataclass(field_type)
+
+def deserialize_dataclass(cls: Type[T], data: Union[dict, list]) -> T:
+    """
+    Recursively deserialize data into a dataclass or a list of dataclasses.
+    """
+    if isinstance(data, list):
+        # Handle lists of dataclasses
+        inner_type = cls.__args__[0] if hasattr(cls, '__args__') else None
+        if inner_type and is_dataclass(inner_type):
+            return [deserialize_dataclass(inner_type, item) for item in data]
+        return data
+
+    if isinstance(data, dict) and is_dataclass(cls):
+        field_types = get_type_hints(cls)
+        return cls(
+            **{
+                key: deserialize_dataclass(field_types[key], value)
+                if key in field_types and _is_optional_or_dataclass(field_types[key], value)
+                else (
+                    deserialize_dataclass(field_types[key], value)
+                    if key in field_types
+                       and hasattr(field_types[key], '__origin__')
+                       and field_types[key].__origin__ == list
+                    else value
+                )
+                for key, value in data.items()
+                if key in field_types  # Ignore unexpected fields
+            }
+        )
+    return data
