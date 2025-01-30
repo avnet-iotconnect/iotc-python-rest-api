@@ -50,7 +50,7 @@ content = re.sub(
 
 heading="""
 > This document is reformatted to better viewing as a standalone document.
-> We recommended visit this [GitHub v{} link]({}) for best experience.
+> We recommended visiting this [GitHub v{} link]({}) for best experience.
 
 """.format(__version__, f"$REPO_URL/blob/v{__version__}/")
 

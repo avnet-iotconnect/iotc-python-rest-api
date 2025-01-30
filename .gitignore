@@ -11,6 +11,9 @@
 /*.gz
 /*.whl
 
-# This will be generated when making an editable installs
+# when massaging for a release with absolute links
+/README.*.md
+
+# This will be generated when making an editable install wiht pip install -e .
 src/iotconnect_rest_api.egg-info/
 
