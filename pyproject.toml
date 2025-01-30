@@ -52,3 +52,6 @@ where = ["src"]
 [tool.setuptools.dynamic]
 version = {attr = "avnet.iotconnect.restapi.__version__"}
 
+[project.scripts]
+iotconnect-cli = "avnet.iotconnect.restapi.cli.main:main"
+

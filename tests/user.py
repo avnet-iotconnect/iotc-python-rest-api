@@ -9,8 +9,6 @@ print("get_own_user", u)
 if u.companyCpid != token.decode_access_token().user.cpId:
     raise Exception("cpid not equal!")
 
-
-
 print("get_by_guid", user.get_by_guid(u.userGuid))
 
 print("CPID:", u.companyCpid)

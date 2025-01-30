@@ -31,13 +31,14 @@ def decode_access_token() -> Optional[AccessToken]:
     if config.access_token is None:
         return None
     # without needing to add jwt package...
-    print(config.access_token)
     parts = config.access_token.split('.')
     if len(parts) != 3:
         return None
     payload = parts[1]
+    # Payload will need to be padded for proper base46 decoding.
+    if len(payload) % 4 != 0:
+        payload += "=" * (4 - len(payload) % 4)
     decoded_payload = base64.b64decode(payload)
     data = json.loads(decoded_payload.decode("utf-8"))
-    print(data)
     return util.deserialize_dataclass(AccessToken, data)
 

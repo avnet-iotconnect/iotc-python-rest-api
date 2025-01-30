@@ -38,11 +38,11 @@ def init():
         )
         ap.add_argument(
             "--pf", "--platform", dest="platform", choices=config.PF_CHOICES, default=os.environ.get("IOTC_PF") or config.PF_AWS,
-            help='account platform ("aws" for AWS, or "az" for Azure). IOTC_PF environment variable can be used instead.'
+            help='Account platform ("aws" for AWS, or "az" for Azure). IOTC_PF environment variable can be used instead.'
         )
         ap.add_argument(
             "-e", "--env", dest="env", choices=config.ENV_CHOICES, default=os.environ.get("IOTC_ENV") or config.ENV_POC,
-            help='account environment - From settings -> Key Vault in the Web UI. IOTC_ENV environment variable can be used instead.'
+            help='Account environment - From settings -> Key Vault in the Web UI. IOTC_ENV environment variable can be used instead.'
         )
 
     def _process_configure(a: argparse.Namespace) -> None:
@@ -309,3 +309,10 @@ def process(argv):
 
 
 _parser = init()
+
+def main():
+    # entry hook for iotonnect-cli
+    process(sys.argv[1:])
+
+if __name__ == "__main__":
+    main()
