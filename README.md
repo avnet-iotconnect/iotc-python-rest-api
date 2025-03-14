@@ -9,10 +9,12 @@ by your custom applications when using the provided facilities.
 The project provides a reference CLI implementation as well, with reduced
 functionality when compared to the native python API support.
 
-At this stage, the Python interface covers the following set of basic features:
-* Obtaining details about devices, templates, entities, IoTConnect users, OTA firmwares and firmware upgrades.
-* Creating and deleting templates based on template JSON and x509 authentication based devices.
-* Creating or deleting x509 authentication based devices.
+At this stage, the Python interface covers the following set of features 
+with partial implementations covering most common use cases:
+* Obtaining details about devices, templates, entities, IoTConnect users and OTA Firmware upgrades.
+* Creating and Deleting templates based on template JSON and x509 authentication based devices.
+* Managing OTA firmware and firmware upgrades, uploading files and publishing.
+* Creating and Deleting x509 authentication based devices.
 * Creating and deleting OTA firmware and firmware upgrade entries, along with the ability to upload firmware files
   in order to upgrade firmware on your devices. 
 * Generating an ECC x509 self-signed certificate and a matching private key

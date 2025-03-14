@@ -3,27 +3,67 @@
 # Authors: Nikola Markovic <nikola.markovic@avnet.com> et al.
 
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from http import HTTPMethod
-from typing import Optional, Dict
+from typing import Optional, Dict, List
 
-from . import apiurl, credentials
+from . import apiurl, credentials, dcutil
 from .apirequest import request, Headers
 from .error import UsageError, ConflictResponseError, NotFoundResponseError
 
 # use these types as "type" query parameter when querying firmwares
-TYPE_RELEASED="released"
-TYPE_DRAFT="draft"
-TYPE_BOTH="both" # either released or draft firmware
+TYPE_RELEASED = "released"
+TYPE_DRAFT = "draft"
+TYPE_BOTH = "both"  # either released or draft firmware
+
+
+@dataclass
+class Url:
+    name: str  # file name associated with this URL (original file name during upload)
+    url: str  # file name associated with this URL (original file name during upload)
+
 
 @dataclass
 class Upgrade:
     guid: str
+    software: str  # software version
+    description: str
+    isDraft: str
 
+    # metadata:
+    createdDate: str  # ISO string
+    createdBy: str  # User GUID
+    updatedDate: str  # ISO string
+    updatedBy: str  # User GUID
 
-@dataclass
-class Upload:
-    guid: str
+    # not used
+    fileName: str  # not used? (probably compatibility with some old API version)
+    fileUrl: str  # not used? (probably compatibility with some old API version)
+
+    # urls=[{'url': 'https://pociotconnectblobstorage.blob.core.windows.net/firmware/B1EF896C-77CF-4A5E-A8DF-3F6EEA36B4C8.zip?sv=2020-04-08&se=2025-03-14T20%3A08%3A00Z&sr=b&sp=r&sig=cPwAU5deWCq30jsYflbrXhR1CzCdPiZvwKju6V8q6PM%3D'
+    # 'name': 'test.zip'}]))
+    urls: List[Url]
+
+    # these fields relate to the Firmware object and are not present when we just create a blank Upgrade
+    firmwareguid: str = field(default=None)  # guid of the Firmware object
+    name: str = field(default=None)  # name of the firmware object associated with this upgrade
+    hardware: str = field(default=None)  # hardware of the firmware object associated with this upgrade
+    firmwareUpgradeDescription: str = field(default=None)
+
+    # shortcuts
+    def is_draft(self):
+        return self.isDraft.lower() == TYPE_DRAFT
+
+    def is_released(self):
+        return self.isDraft.lower() ==  TYPE_RELEASED
+
+    def __post_init__(self):
+        if self.urls is not None:
+            # noinspection PyTypeChecker
+            # - complains about item, Url
+            self.urls = [Url(**dcutil.normalize_keys(dcutil.filter_dict_to_dataclass_fields(item, Url))) for item in self.urls]
+        else:
+            self.urls = []
 
 
 @dataclass
@@ -33,7 +73,7 @@ class UpgradeCreateResult:
 
 @dataclass
 class UploadResult:
-    newId: str
+    guid: str
 
 
 def _validate_version(version: str, what: str):
@@ -44,7 +84,8 @@ def _validate_version(version: str, what: str):
     elif all(x.isalnum() for x in version.split('.')):
         raise UsageError(f'"{what}" parameter must contain only alphanumeric characters or periods')
 
-def query(query_str: str = '[*]', params: Optional[Dict[str,any]] = None) -> list[Upgrade]:
+
+def query(query_str: str = '[*]', params: Optional[Dict[str, any]] = None) -> list[Upgrade]:
     response = request(apiurl.ep_firmware, '/firmware-upgrade')
     return response.data.get(query_str=query_str, params=params, dc=Upgrade)
 
@@ -54,10 +95,11 @@ def get_by_guid(guid: str) -> Optional[Upgrade]:
     if guid is None or len(guid) == 0:
         raise UsageError('get_by_guid: The firmware guid argument is missing')
     try:
-        response = request(apiurl.ep_device, f'/firmware-upgrade/{guid}')
+        response = request(apiurl.ep_firmware, f'/firmware-upgrade/{guid}')
         return response.data.get_one(dc=Upgrade)
     except NotFoundResponseError:
         return None
+
 
 def create(
         firmware_guid: str,
@@ -104,7 +146,7 @@ def upload(upgrade_guid: str, file_path: str, file_name: Optional[str] = None, f
 
     with open(file_path, file_open_mode) as f:
         fw_file = {
-            'fileData': f
+            'fileData': (file_name, f)
         }
         data = {
             'fileRefGuid': upgrade_guid,
