@@ -5,17 +5,17 @@
 import os
 from dataclasses import dataclass, field
 from http import HTTPMethod
-from typing import Optional, Dict, List
+from typing import Optional, Dict, List, BinaryIO, Tuple
 
-from . import apiurl, credentials, dcutil
+from . import apiurl, credentials, util
 from .apirequest import request, Headers
-from .error import UsageError, ConflictResponseError, NotFoundResponseError
+from .error import UsageError, NotFoundResponseError
 
 # use these types as "type" query parameter when querying firmwares
 TYPE_RELEASED = "released"
 TYPE_DRAFT = "draft"
 TYPE_BOTH = "both"  # either released or draft firmware
-
+FORM_FIELD_FILE_DATA = 'fileData' # Defines the form field that all files must be uploaded as when uploading firmware. Use this for upload_raw()
 
 @dataclass
 class Url:
@@ -61,7 +61,7 @@ class Upgrade:
         if self.urls is not None:
             # noinspection PyTypeChecker
             # - complains about item, Url
-            self.urls = [Url(**dcutil.normalize_keys(dcutil.filter_dict_to_dataclass_fields(item, Url))) for item in self.urls]
+            self.urls = [Url(**util.normalize_keys(util.filter_dict_to_dataclass_fields(item, Url))) for item in self.urls]
         else:
             self.urls = []
 
@@ -103,7 +103,7 @@ def get_by_guid(guid: str) -> Optional[Upgrade]:
 
 def create(
         firmware_guid: str,
-        sw_version: str,
+        sw_version: Optional[str] = None,
         description: Optional[str] = None,
 ) -> UpgradeCreateResult:
     """
@@ -111,13 +111,17 @@ def create(
     associated with a "Firmware" entry.
 
     :param firmware_guid: GUID of the firmware for which to post this upgrade.
-    :param sw_version: Software version of the upgrade.
+    :param sw_version: Optional Software Version of the upgrade. If not provided, a unique "build version" will be generated based on current time like 250317.185311.483.
     :param description: Optional description that can be added to the firmware upgrade.
 
     :return: GUID of the newly created upgrade.
     """
 
+    if sw_version is None:
+        sw_version = util.generate_unique_timestamp_string()
+
     _validate_version('sw_version', sw_version)
+
     data = {
         "firmwareGuid": firmware_guid,
         "software": sw_version
@@ -146,7 +150,7 @@ def upload(upgrade_guid: str, file_path: str, file_name: Optional[str] = None, f
 
     with open(file_path, file_open_mode) as f:
         fw_file = {
-            'fileData': (file_name, f)
+            FORM_FIELD_FILE_DATA: (file_name, f)
         }
         data = {
             'fileRefGuid': upgrade_guid,
@@ -156,6 +160,53 @@ def upload(upgrade_guid: str, file_path: str, file_name: Optional[str] = None, f
         del headers[Headers.N_ACCEPT]
         response = request(apiurl.ep_file, '/File', method=HTTPMethod.POST, files=fw_file, data=data)
         return response.data.get_one(dc=UploadResult)
+
+def upload_raw(upgrade_guid: str, fw_files: List[Tuple[str, Tuple[str, BinaryIO, str]]]) -> None:
+    """
+    Uploads the update files that can be pushed to device directly by using the native "requests" python library's
+    list of files.
+    See https://requests.readthedocs.io/en/latest/user/advanced/#post-multiple-multipart-encoded-files
+    When providing the form field name, ensure that it is named "fileData" (replace "images" with "fileData" in the example).
+    Call upgrade.create() or firmware.create() first to obtain the firmware upgrade GUID.
+    Basic Example:
+        ota_files = [
+            (upgrade.FORM_FIELD_FILE_DATA', ('firmware.zip', open('../build/output.zip', 'rb'), 'application/octet-stream')), # recommended to octet-stream for any binary file or images (png, jpg and such)
+            (upgrade.FORM_FIELD_FILE_DATA', ('models/model.tar.gz', open('models/model.tar.gz', 'rb'), 'application/octet-stream')),
+            (upgrade.FORM_FIELD_FILE_DATA', ('config.json', open('config.json', 'rb'), 'application/json')) # recommended to use binary as well for json
+        ]
+        upload_raw("4695660d-bd7b-492b-be88-4381eaa97659, ota_files)
+    IMPORTANT: The caller should NOT close opened files upon exception. Each file will be automatically closed upon exception or success.
+
+    :param upgrade_guid: GUID of the firmware upgrade created by upgrade.create() or firmware.create().
+    :param fw_files: Python "requests" package compatible files object. See the function description comment block.
+
+    """
+
+    # validate input ....
+    # Ensure at least one file is provided
+    if fw_files is None or not isinstance(fw_files, list) or len(fw_files) < 1:
+        raise UsageError("At least one file element.")
+
+    # ensure that each entry had form field name called 'fileData' and that each entry has at least 2 elements.
+    for entry in fw_files:
+        if len(entry) != 2:
+            raise UsageError("Each entry must have form field and file data.")
+        if entry[0] != FORM_FIELD_FILE_DATA:
+            raise UsageError("Each entry's form filed must be named fileData.")
+
+    try:
+        data = {
+            'fileRefGuid': upgrade_guid,
+            'ModuleType': 'firmware',
+        }
+        headers = credentials.get_auth_headers()
+        del headers[Headers.N_ACCEPT]
+        response = request(apiurl.ep_file, '/File', method=HTTPMethod.POST, files=fw_files, data=data)
+        return response.data.get_one(dc=UploadResult)
+    finally:
+        # close all opened files
+        for entry in fw_files:
+            entry[1][1].close()
 
 
 def publish(upgrade_guid: str) -> None:

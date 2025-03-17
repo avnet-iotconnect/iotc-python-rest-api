@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 from http import HTTPMethod, HTTPStatus
 from typing import Optional, Dict, List
 
-from . import apiurl, upgrade, dcutil
+from . import apiurl, upgrade, util
 from .apirequest import request
 from .error import UsageError, NotFoundResponseError
 
@@ -25,8 +25,8 @@ class Firmware:
     deviceTemplateName: str
 
 
-    releaseCount: int = field(default=None)
-    draftCount: int = field(default=None)
+    releaseCount: int = field(default=None)  # do not use. user functions below
+    draftCount: int = field(default=None) # do not use. use functions below
     description: str = field(default=None)
 
     # metadata:
@@ -41,7 +41,8 @@ class Firmware:
     updatedby: str = field(default=None) # Same as above, but may be misspelled. We don't care much so leave it there
 
 
-    Upgrades: List[upgrade.Upgrade] = field(default=None) # = field(default_factory=list[upgrade.Upgrade])  # this cannot be optional. It throws off dataclass
+    # Note: This list is NOT guaranteed to be in chronological or version sorted order!
+    Upgrades: List[upgrade.Upgrade] = field(default=None)
 
     # mostly irrelevant fields
     firmwareUpgradeDescription: str = field(default=None)
@@ -52,9 +53,23 @@ class Firmware:
         if self.Upgrades is not None:
             # noinspection PyTypeChecker
             # - complains about item, upgrade.Upgrade
-            self.Upgrades = [upgrade.Upgrade(**dcutil.normalize_keys(dcutil.filter_dict_to_dataclass_fields(item, upgrade.Upgrade))) for item in self.Upgrades]
+            self.Upgrades = [upgrade.Upgrade(**util.normalize_keys(util.filter_dict_to_dataclass_fields(item, upgrade.Upgrade))) for item in self.Upgrades]
         else:
             self.Upgrades = []
+
+    def draft_count(self):
+        return sum(1 for x in self.Upgrades if x.is_draft())
+
+    def release_count(self):
+        return sum(1 for x in self.Upgrades if x.is_released())
+
+    def releases(self) -> List[upgrade.Upgrade]:
+        return list(x for x in self.Upgrades if x.is_released())
+
+    def drafts(self) -> List[upgrade.Upgrade]:
+        return list(x for x in self.Upgrades if x.is_draft())
+
+
 
 @dataclass
 class FirmwareCreateResult:
@@ -98,7 +113,7 @@ def create(
         template_guid: str,
         name: str,
         hw_version: str,
-        initial_sw_version: str,
+        initial_sw_version: str = None,
         description: Optional[str] = None,
         upgrade_description: Optional[str] = None,
 ) -> FirmwareCreateResult:
@@ -110,7 +125,7 @@ def create(
     :param template_guid: GUID of the device template.
     :param name: Name of this template. This code must be uppercase alphanumeric an up to 10 characters in length.
     :param hw_version: Hardware Version of the firmware.
-    :param initial_sw_version: Hardware Version of the software.
+    :param initial_sw_version: Optional Software Version of the initial upgrade object. If not provided, a unique "build version" will be generated based on current time like 250317.185311.483.
     :param description: Optional description that can be added to the firmware.
     :param upgrade_description: Optional description that can be added to the firmware upgrade.
 
@@ -118,12 +133,15 @@ def create(
     """
 
     _validate_firmware_name(name)
-    if hw_version is not None:
-        # noinspection PyProtectedMember
-        upgrade._validate_version('hw_version', hw_version)
-    if initial_sw_version is not None:
-        # noinspection PyProtectedMember
-        upgrade._validate_version('initial_sw_version', initial_sw_version)
+
+    if initial_sw_version is None:
+        initial_sw_version = util.generate_unique_timestamp_string()
+
+    # noinspection PyProtectedMember
+    upgrade._validate_version('hw_version', hw_version)
+    # noinspection PyProtectedMember
+    upgrade._validate_version('initial_sw_version', initial_sw_version)
+
     data = {
         "deviceTemplateGuid": template_guid,
         "firmwareName": name,

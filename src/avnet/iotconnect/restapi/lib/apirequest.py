@@ -11,7 +11,7 @@ from requests.adapters import HTTPAdapter
 from requests.exceptions import RetryError
 from urllib3 import Retry
 
-from . import config, dcutil
+from . import config, util
 from .error import ResponseError, AuthError, ApiException, SingleValueExpected, ValueExpected, ConflictResponseError, NotFoundResponseError, ConfigError
 
 _get_auth_headers = None  # avoid circular dependency
@@ -24,7 +24,7 @@ class Headers(dict[str, str]):
     V_APP_JSON = "application/json"
 
 
-T = TypeVar('T', bound=dcutil.DataclassInstance)
+T = TypeVar('T', bound=util.DataclassInstance)
 
 # ------------
 
@@ -39,7 +39,7 @@ class Parser:
             return ret
 
         # Instantiate the dataclass directly after normalizing keys
-        return [dc(**dcutil.normalize_keys(dcutil.filter_dict_to_dataclass_fields(item, dc))) for item in ret]
+        return [dc(**util.normalize_keys(util.filter_dict_to_dataclass_fields(item, dc))) for item in ret]
 
 
     def get_one(self, expr='[*]', dc: Optional[T] = None) -> Optional[Union[dict, T]]:
