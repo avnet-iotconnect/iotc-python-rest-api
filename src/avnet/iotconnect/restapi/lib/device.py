@@ -70,7 +70,7 @@ def create(
         name: Optional[str] = None,
         is_ca_auth=False,
         entity_guid: Optional[str] = None
-) -> str:
+) -> DeviceCreateResult:
     """
     Create an IoTConnect device using x509 authentication (either Self Signed or CA signed)
 

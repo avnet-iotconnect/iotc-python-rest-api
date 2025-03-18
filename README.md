@@ -13,7 +13,7 @@ At this stage, the Python interface covers the following set of features
 with partial implementations covering most common use cases:
 * Obtaining details about devices, templates, entities, IoTConnect users and OTA Firmware upgrades.
 * Creating and Deleting templates based on template JSON and x509 authentication based devices.
-* Managing OTA firmware and firmware upgrades, uploading files and publishing.
+* Managing OTA firmware and firmware upgrades, uploading files, scheduling and publishing OTA to devices.
 * Creating and Deleting x509 authentication based devices.
 * Creating and deleting OTA firmware and firmware upgrade entries, along with the ability to upload firmware files
   in order to upgrade firmware on your devices. 

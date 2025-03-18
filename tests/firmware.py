@@ -75,18 +75,15 @@ print(upgrade.get_by_guid(upgrade_2_guid).software, upgrade.get_by_guid(upgrade_
 print(upgrade.get_by_guid(upgrade_2_guid).software, upgrade.get_by_guid(upgrade_2_guid).urls[1].name)
 print('----')
 
-upgrade.publish(upgrade_2_guid)
 
 # check what we get with published second draft as a "release".
 print('#4 firmware.get_by_guid', firmware.get_by_guid(firmware_guid))
 
-try:
-    upgrade.publish(upgrade_2_guid)
-    print("FAILED Twice-Upgrade publish test!")
-except ConflictResponseError:
-    print("Twice-Upgrade publish test success")
-
-upgrade.delete_match_guid(upgrade_2_guid)
+# try:
+#     upgrade.publish(upgrade_2_guid)
+#     print("FAILED Twice-Upgrade publish test!")
+# except ConflictResponseError:
+#     print("Twice-Upgrade publish test success")
 
 # now we should have a published firmware with this guid
 print('#5 firmware.get_by_guid', firmware.get_by_guid(firmware_guid))
@@ -100,14 +97,50 @@ with open('device-cert.pem', 'w') as cert_file:
     cert_file.write(cert_pem)
 with open('device-cert.pem', 'r') as file:
     certificate = file.read()
-result = device.create(template_guid=template_guid, duid=DUID, device_certificate=certificate)
-print('create=', result)
+device_create_result = device.create(template_guid=template_guid, duid=DUID, device_certificate=certificate)
+print('create=', device_create_result)
+
+
+try:
+    upgrade.push_ota_to_entity(upgrade_1_guid)  # use the root entity
+    print("Success push_ota_to_entity upgrade_1_guid")
+except ConflictResponseError:
+    print("Failed push_ota_to_entity upgrade_1_guid!")
+
+try:
+    upgrade.push_ota_to_device(upgrade_1_guid, [device_create_result.newid])
+    print("Success push_ota_to_device upgrade_1_guid")
+except ConflictResponseError:
+    print("Failed push_ota_to_device upgrade_1_guid!")
+
+try:
+    upgrade.push_ota_to_entity(upgrade_2_guid, device_create_result.entityGuid)  # use the same entity that the device belongs to
+    print("Success push_ota_to_entity upgrade_2_guid")
+except ConflictResponseError:
+    print("Failed push_ota_to_entity upgrade_2_guid as expected.")
+
+try:
+    upgrade.push_ota_to_device(upgrade_2_guid, [device_create_result.newid], is_draft=True)
+    print("Success push_ota_to_device upgrade_2_guid")
+except ConflictResponseError:
+    print("Failed push_ota_to_device upgrade_2_guid!")
+
+
+upgrade.publish(upgrade_2_guid)
+
+
+upgrade.delete_match_guid(upgrade_2_guid)
+
 
 # there always has to be at least one fw upgrade available so we cannot delete both
-# upgrade.delete_match_guid(upgrade_1_guid)
+try:
+    upgrade.delete_match_guid(upgrade_1_guid)
+    print("FAILED Delete the only upgrade left test!")
+except ConflictResponseError:
+    print("Delete the only upgrade left - test success.")
+
 firmware.deprecate_match_name(FIRMWARE_NAME)
 
 device.delete_match_duid(DUID)
-
 
 template.delete_match_code(TEMPLATE_CODE)

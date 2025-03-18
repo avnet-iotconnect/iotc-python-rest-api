@@ -10,7 +10,6 @@ from . import apiurl, upgrade, util
 from .apirequest import request
 from .error import UsageError, NotFoundResponseError
 
-
 @dataclass
 class Firmware:
     guid: str
@@ -155,7 +154,6 @@ def create(
 
     response = request(apiurl.ep_firmware, '/Firmware', json=data)
     return response.data.get_one(dc=FirmwareCreateResult)
-
 
 def deprecate_match_guid(guid: str) -> None:
     """
