@@ -1,5 +1,5 @@
 import avnet.iotconnect.restapi.lib.template as template
-from avnet.iotconnect.restapi.lib import firmware, upgrade, device, config
+from avnet.iotconnect.restapi.lib import firmware, upgrade, device, config, ota
 from avnet.iotconnect.restapi.lib.error import InvalidActionError, ConflictResponseError
 
 TEMPLATE_CODE = 'apidemo1'
@@ -102,25 +102,25 @@ print('create=', device_create_result)
 
 
 try:
-    upgrade.push_ota_to_entity(upgrade_1_guid)  # use the root entity
+    ota.push_to_entity(upgrade_1_guid)  # use the root entity
     print("Success push_ota_to_entity upgrade_1_guid")
 except ConflictResponseError:
     print("Failed push_ota_to_entity upgrade_1_guid!")
 
 try:
-    upgrade.push_ota_to_device(upgrade_1_guid, [device_create_result.newid])
+    ota.push_to_device(upgrade_1_guid, [device_create_result.newid])
     print("Success push_ota_to_device upgrade_1_guid")
 except ConflictResponseError:
     print("Failed push_ota_to_device upgrade_1_guid!")
 
 try:
-    upgrade.push_ota_to_entity(upgrade_2_guid, device_create_result.entityGuid)  # use the same entity that the device belongs to
+    ota.push_to_entity(upgrade_2_guid, device_create_result.entityGuid)  # use the same entity that the device belongs to
     print("Success push_ota_to_entity upgrade_2_guid")
 except ConflictResponseError:
     print("Failed push_ota_to_entity upgrade_2_guid as expected.")
 
 try:
-    upgrade.push_ota_to_device(upgrade_2_guid, [device_create_result.newid], is_draft=True)
+    ota.push_to_device(upgrade_2_guid, [device_create_result.newid], is_draft=True)
     print("Success push_ota_to_device upgrade_2_guid")
 except ConflictResponseError:
     print("Failed push_ota_to_device upgrade_2_guid!")
