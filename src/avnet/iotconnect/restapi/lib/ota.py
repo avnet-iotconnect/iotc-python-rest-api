@@ -2,15 +2,12 @@
 # Copyright (C) 2025 Avnet
 # Authors: Nikola Markovic <nikola.markovic@avnet.com> et al.
 
-import os
-from dataclasses import dataclass, field
 from http import HTTPMethod
-from typing import Optional, Dict, List
+from typing import Optional, List
 
-from . import apiurl, credentials, util, entity
-from .apirequest import request, Headers
-from .error import UsageError, NotFoundResponseError
-
+from . import apiurl, entity
+from .apirequest import request
+from .error import UsageError
 
 # OTA push types
 OTA_TARGET_ENTITY=1

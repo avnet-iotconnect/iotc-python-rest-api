@@ -10,6 +10,7 @@ from . import apiurl, upgrade, util
 from .apirequest import request
 from .error import UsageError, NotFoundResponseError
 
+
 @dataclass
 class Firmware:
     guid: str
