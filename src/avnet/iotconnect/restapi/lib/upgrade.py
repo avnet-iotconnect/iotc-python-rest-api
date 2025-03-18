@@ -15,7 +15,6 @@ from .error import UsageError, NotFoundResponseError
 TYPE_RELEASED = "Released"
 TYPE_DRAFT = "Draft"
 TYPE_BOTH = "both"  # either released or draft firmware
-FORM_FIELD_FILE_DATA = 'fileData' # Defines the form field that all files must be uploaded as when uploading firmware. Use this for upload_raw()
 
 
 @dataclass
@@ -152,14 +151,12 @@ def upload(upgrade_guid: str, file_path: str, file_name: Optional[str] = None, f
 
     with open(file_path, file_open_mode) as f:
         fw_file = {
-            FORM_FIELD_FILE_DATA: (file_name, f)
+            'fileData': (file_name, f)
         }
         data = {
             'fileRefGuid': upgrade_guid,
             'ModuleType': 'firmware',
         }
-        headers = credentials.get_auth_headers()
-        del headers[Headers.N_ACCEPT]
         response = request(apiurl.ep_file, '/File', method=HTTPMethod.POST, files=fw_file, data=data)
         return response.data.get_one(dc=UploadResult)
 
