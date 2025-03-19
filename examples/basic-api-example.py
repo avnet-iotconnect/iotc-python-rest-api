@@ -5,7 +5,7 @@
 import avnet.iotconnect.restapi.lib.entity as entity
 import avnet.iotconnect.restapi.lib.template as template
 import avnet.iotconnect.restapi.lib.user as user
-from avnet.iotconnect.restapi.lib import token, config
+from avnet.iotconnect.restapi.lib import accesstoken, config
 from avnet.iotconnect.restapi.lib.error import InvalidActionError
 
 """

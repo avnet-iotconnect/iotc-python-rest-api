@@ -16,7 +16,7 @@ from cryptography.hazmat.primitives import serialization, hashes
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.x509.oid import NameOID
 
-from . import apiurl, token
+from . import apiurl, accesstoken
 
 # Environment constants
 PF_AZ = "az"
@@ -141,7 +141,7 @@ def get_section(section: str) -> MutableMapping:
 def is_dedicated_instance() -> bool:
     """ Utility function for determining whether the MQTT ClientID needs to be prefixed with CPID, for example"""
 
-    is_dedicated = token.decode_access_token().user.isCpidOptional
+    is_dedicated = accesstoken.decode_access_token().user.isCpidOptional
     if is_dedicated is not None:
         return is_dedicated
     else:
@@ -154,7 +154,7 @@ def get_mqtt_client_id(duid: str) -> str:
     if is_dedicated_instance():
         return duid
     else:
-        return f"{token.decode_access_token().user.cpId}-{duid}"
+        return f"{accesstoken.decode_access_token().user.cpId}-{duid}"
 
 def generate_device_json(duid: str, auth_type: int = 2) -> str:
     """
@@ -166,7 +166,7 @@ def generate_device_json(duid: str, auth_type: int = 2) -> str:
     device_json = {
         "ver": "2.1",
         "pf": pf,
-        "cpid": token.decode_access_token().user.cpId,
+        "cpid": accesstoken.decode_access_token().user.cpId,
         "env": env,
         "uid": duid,
         "did": get_mqtt_client_id(duid),

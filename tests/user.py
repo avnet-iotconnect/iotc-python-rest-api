@@ -1,7 +1,7 @@
 import os
 import sys
 
-from avnet.iotconnect.restapi.lib import user, util, token
+from avnet.iotconnect.restapi.lib import user, util, accesstoken
 
 u = user.get_own_user()
 print("get_own_user", u)

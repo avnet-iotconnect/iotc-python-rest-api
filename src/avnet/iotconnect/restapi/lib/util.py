@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: MIT
 # Copyright (C) 2025 Avnet
 # Authors: Nikola Markovic <nikola.markovic@avnet.com> et al.
-
+import hashlib
 # The JSON to object mapping was originally created with assistance from OpenAI's ChatGPT.
 # For more information about ChatGPT, visit https://openai.com/
 
@@ -32,6 +32,14 @@ def filter_dict_to_dataclass_fields(item: dict, dc: Type[T]) -> dict:
 def normalize_keys(item: dict) -> dict:
     """Replace dashes with underscores in dictionary keys to match dataclass field names."""
     return {key.replace('-', '_'): value for key, value in item.items()}
+
+# credit: https://stackoverflow.com/questions/16874598/how-to-calculate-the-md5-checksum-of-a-file-in-python
+def file_md5(filename: str):
+    with open(filename, 'rb') as f:
+        file_hash = hashlib.md5()
+        while chunk := f.read(1024 * 20): # 20k at a time
+            file_hash.update(chunk)
+        return file_hash.hexdigest()
 
 def _is_optional_or_dataclass(field_type, value):
     """

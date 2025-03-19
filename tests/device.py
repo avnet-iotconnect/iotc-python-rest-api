@@ -48,7 +48,7 @@ with open('device-cert.pem', 'r') as file:
     result = device.create(template_guid=t.guid, duid=DUID, device_certificate=certificate)
     print('create=', result)
 
-print('delete device=', device.delete_match_guid(result))
+print('delete device=', device.delete_match_guid(result.newid))
 
 if do_delete_template:
     print('delete template=', template.delete_match_guid(t.guid))

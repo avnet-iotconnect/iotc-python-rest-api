@@ -1,6 +1,7 @@
 import avnet.iotconnect.restapi.lib.template as template
-from avnet.iotconnect.restapi.lib import firmware, upgrade, device, config, ota
+from avnet.iotconnect.restapi.lib import firmware, upgrade, device, config, ota, storage
 from avnet.iotconnect.restapi.lib.error import InvalidActionError, ConflictResponseError
+from avnet.iotconnect.restapi.lib.storage import FILE_MODULE_CUSTOM, FILE_MODULE_DEVICEIMAGE
 
 TEMPLATE_CODE = 'apidemo1'
 FIRMWARE_NAME = 'APIDEMO1FW'
@@ -79,15 +80,6 @@ print('----')
 # check what we get with published second draft as a "release".
 print('#4 firmware.get_by_guid', firmware.get_by_guid(firmware_guid))
 
-# try:
-#     upgrade.publish(upgrade_2_guid)
-#     print("FAILED Twice-Upgrade publish test!")
-# except ConflictResponseError:
-#     print("Twice-Upgrade publish test success")
-
-# now we should have a published firmware with this guid
-print('#5 firmware.get_by_guid', firmware.get_by_guid(firmware_guid))
-
 
 # test creation of a device with generated certificate and private key
 pkey_pem, cert_pem = config.generate_ec_cert_and_pkey(DUID)
@@ -95,8 +87,8 @@ with open('device-pkey.pem', 'w') as pk_file:
     pk_file.write(pkey_pem)
 with open('device-cert.pem', 'w') as cert_file:
     cert_file.write(cert_pem)
-with open('device-cert.pem', 'r') as file:
-    certificate = file.read()
+with open('device-cert.pem', 'r') as f:
+    certificate = f.read()
 device_create_result = device.create(template_guid=template_guid, duid=DUID, device_certificate=certificate)
 print('create=', device_create_result)
 
@@ -113,11 +105,7 @@ try:
 except ConflictResponseError:
     print("Failed push_ota_to_device upgrade_1_guid!")
 
-try:
-    ota.push_to_entity(upgrade_2_guid, device_create_result.entityGuid)  # use the same entity that the device belongs to
-    print("Success push_ota_to_entity upgrade_2_guid")
-except ConflictResponseError:
-    print("Failed push_ota_to_entity upgrade_2_guid as expected.")
+# NOTE: We cannot use a draft to ota.push_to_entity(). We would expect it to fail.
 
 try:
     ota.push_to_device(upgrade_2_guid, [device_create_result.newid], is_draft=True)
@@ -127,6 +115,16 @@ except ConflictResponseError:
 
 
 upgrade.publish(upgrade_2_guid)
+
+try:
+     upgrade.publish(upgrade_2_guid)
+     print("FAILED Twice-Upgrade publish test!")
+except ConflictResponseError:
+     print("Twice-Upgrade publish test success")
+
+# now we should have two published firmwares with this guid
+print('#5 firmware.get_by_guid', firmware.get_by_guid(firmware_guid))
+
 
 
 upgrade.delete_match_guid(upgrade_2_guid)
