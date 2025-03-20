@@ -1,12 +1,9 @@
-import os
-import sys
-
-from avnet.iotconnect.restapi.lib import user, util, accesstoken
+from avnet.iotconnect.restapi.lib import user, accesstoken
 
 u = user.get_own_user()
 print("get_own_user", u)
 
-if u.companyCpid != token.decode_access_token().user.cpId:
+if u.companyCpid != accesstoken.decode_access_token().user.cpId:
     raise Exception("cpid not equal!")
 
 print("get_by_guid", user.get_by_guid(u.userGuid))

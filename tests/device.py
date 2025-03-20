@@ -12,7 +12,6 @@ from avnet.iotconnect.restapi.lib import template
 
 TEMPLATE_CODE = 'apidemo1'
 
-
 DUID = os.environ.get('IOTC_DUID')
 
 # try load duid from iotcDeviceConfig.json

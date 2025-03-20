@@ -1,11 +1,10 @@
 import avnet.iotconnect.restapi.lib.template as template
-from avnet.iotconnect.restapi.lib import firmware, upgrade, device, config, ota, storage
+from avnet.iotconnect.restapi.lib import firmware, upgrade, device, config, ota
 from avnet.iotconnect.restapi.lib.error import InvalidActionError, ConflictResponseError
-from avnet.iotconnect.restapi.lib.storage import FILE_MODULE_CUSTOM, FILE_MODULE_DEVICEIMAGE
 
 TEMPLATE_CODE = 'apidemo1'
 FIRMWARE_NAME = 'APIDEMO1FW'
-DUID='apidemodev01'
+DUID = 'apidemodev01'
 
 # Enable trace programmatically or set environment variable to see more output
 # from avnet.iotconnect.restapi.lib import config as cfg
@@ -24,7 +23,6 @@ try:
 except InvalidActionError:
     print("Device originally not found and not deleted.")
 
-
 # clean up template if it is already there
 try:
     template.delete_match_code(TEMPLATE_CODE)
@@ -38,8 +36,8 @@ template_guid = template_create_result.deviceTemplateGuid
 firmware_create_result = firmware.create(template_guid=template_guid, name=FIRMWARE_NAME, hw_version="1.0", initial_sw_version="v1.0", description="Initial version")
 print(firmware_create_result)
 
-firmware_guid=firmware_create_result.newId
-upgrade_1_guid=firmware_create_result.firmwareUpgradeGuid
+firmware_guid = firmware_create_result.newId
+upgrade_1_guid = firmware_create_result.firmwareUpgradeGuid
 
 # check what we get from the initial creation with the initial draft
 print('#0 firmware.get_by_guid', firmware.get_by_guid(firmware_guid))
@@ -53,7 +51,7 @@ print('#2 firmware.get_by_guid', firmware.get_by_guid(firmware_guid))
 # create an empty new draft and upload two files.
 # NOTE: Test having no sw_version and generating a build number, so omit sw_version.
 new_upgrade_create_result = upgrade.create(firmware_guid=firmware_guid)
-upgrade_2_guid=new_upgrade_create_result.newId
+upgrade_2_guid = new_upgrade_create_result.newId
 
 upgrade.upload(upgrade_2_guid, 'test.zip')
 upgrade.upload(upgrade_2_guid, 'firmware.py', file_name='new-unit-test.py')
@@ -62,7 +60,6 @@ upgrade.upload(upgrade_2_guid, 'firmware.py', file_name='new-unit-test.py')
 final_fw = firmware.get_by_guid(firmware_guid)
 
 print('#3 firmware.get_by_guid', final_fw)
-
 
 print('----')
 print('Upgrades#: ', len(final_fw.Upgrades))
@@ -76,10 +73,8 @@ print(upgrade.get_by_guid(upgrade_2_guid).software, upgrade.get_by_guid(upgrade_
 print(upgrade.get_by_guid(upgrade_2_guid).software, upgrade.get_by_guid(upgrade_2_guid).urls[1].name)
 print('----')
 
-
 # check what we get with published second draft as a "release".
 print('#4 firmware.get_by_guid', firmware.get_by_guid(firmware_guid))
-
 
 # test creation of a device with generated certificate and private key
 pkey_pem, cert_pem = config.generate_ec_cert_and_pkey(DUID)
@@ -91,7 +86,6 @@ with open('device-cert.pem', 'r') as f:
     certificate = f.read()
 device_create_result = device.create(template_guid=template_guid, duid=DUID, device_certificate=certificate)
 print('create=', device_create_result)
-
 
 try:
     ota.push_to_entity(upgrade_1_guid)  # use the root entity
@@ -113,22 +107,18 @@ try:
 except ConflictResponseError:
     print("Failed push_ota_to_device upgrade_2_guid!")
 
-
 upgrade.publish(upgrade_2_guid)
 
 try:
-     upgrade.publish(upgrade_2_guid)
-     print("FAILED Twice-Upgrade publish test!")
+    upgrade.publish(upgrade_2_guid)
+    print("FAILED Twice-Upgrade publish test!")
 except ConflictResponseError:
-     print("Twice-Upgrade publish test success")
+    print("Twice-Upgrade publish test success")
 
 # now we should have two published firmwares with this guid
 print('#5 firmware.get_by_guid', firmware.get_by_guid(firmware_guid))
 
-
-
 upgrade.delete_match_guid(upgrade_2_guid)
-
 
 # there always has to be at least one fw upgrade available so we cannot delete both
 try:

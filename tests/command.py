@@ -78,8 +78,7 @@ def run_sdk_send_receive_command(device_guid: str, command_guid: str):
                 # normally we would send this command with REST API from a different device,
                 # but here we just use the REST API here to send the command in the main SDK loop.
                 command_was_sent = True
-                result = command.send(command_guid, device_guid, "argument1 argument2")
-                print(result)
+                command.send(command_guid, device_guid, "argument1 argument2")
 
             time.sleep(5)
             if command_received:
