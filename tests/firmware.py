@@ -35,7 +35,7 @@ template_create_result = template.create('sample-device-template.json', new_temp
 print('create=', template_create_result)
 template_guid = template_create_result.deviceTemplateGuid
 
-firmware_create_result = firmware.create(template_guid=template_guid, name=FIRMWARE_NAME, hw_version="1.0", initial_sw_version="1", description="Initial version")
+firmware_create_result = firmware.create(template_guid=template_guid, name=FIRMWARE_NAME, hw_version="1.0", initial_sw_version="v1.0", description="Initial version")
 print(firmware_create_result)
 
 firmware_guid=firmware_create_result.newId
