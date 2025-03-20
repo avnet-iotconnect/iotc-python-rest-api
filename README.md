@@ -14,6 +14,8 @@ with partial implementations covering most common use cases:
 * Obtaining details about devices, templates, entities, IoTConnect users and OTA Firmware upgrades.
 * Creating and Deleting templates based on template JSON and x509 authentication based devices.
 * Managing OTA firmware and firmware upgrades, uploading files, scheduling and publishing OTA to devices.
+* Sending commands to devices.
+* Uploading and managing files IoTConnect File Storage.
 * Creating and Deleting x509 authentication based devices.
 * Creating and deleting OTA firmware and firmware upgrade entries, along with the ability to upload firmware files
   in order to upgrade firmware on your devices. 
@@ -106,6 +108,8 @@ export HISTCONTROL=ignoreboth
 # ... then add space in front of the line below:
  iotconnect-cli configure -u my@email.com -p "MyPassword" --pf az --env avnet --skey=MYSOLUTIONKEY  
 ```
+
+### Examples
 
 Once the CLI is configured, API can be invoked to create a device in your account for example.
 
