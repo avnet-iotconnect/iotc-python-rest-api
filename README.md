@@ -17,8 +17,6 @@ with partial implementations covering most common use cases:
 * Sending commands to devices.
 * Uploading and managing files IoTConnect File Storage.
 * Creating and Deleting x509 authentication based devices.
-* Creating and deleting OTA firmware and firmware upgrade entries, along with the ability to upload firmware files
-  in order to upgrade firmware on your devices. 
 * Generating an ECC x509 self-signed certificate and a matching private key
 * Generating iotcDeviceConfig.json which can be used along with certificates
 to provide streamlined configuration for our Python SDK MQTT clients, 
