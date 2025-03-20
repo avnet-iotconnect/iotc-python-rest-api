@@ -4,7 +4,7 @@
 
 import io
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from http import HTTPMethod
 from typing import Optional, Dict
 
@@ -30,7 +30,7 @@ class Template:
     authType: int
     tag: str
     messageVersion: str
-    greenGrass: bool
+    greenGrass: bool = field(default=None)
 
 
 @dataclass

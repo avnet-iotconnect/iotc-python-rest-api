@@ -2,13 +2,13 @@
 # Copyright (C) 2025 Avnet
 # Authors: Nikola Markovic <nikola.markovic@avnet.com> et al.
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from http import HTTPMethod, HTTPStatus
-from typing import Optional, Dict
+from typing import Optional, Dict, List
 
-from . import apiurl, upgrade
+from . import apiurl, upgrade, util
 from .apirequest import request
-from .error import UsageError, ConflictResponseError, NotFoundResponseError
+from .error import UsageError, NotFoundResponseError
 
 
 @dataclass
@@ -17,6 +17,58 @@ class Firmware:
     name: str
     hardware: str
     isDeprecated: bool
+
+
+    # Related device template attributes
+    deviceTemplateGuid: str
+    deviceTemplateCode: str
+    deviceTemplateName: str
+
+
+    releaseCount: int = field(default=None)  # do not use. user functions below
+    draftCount: int = field(default=None) # do not use. use functions below
+    description: str = field(default=None)
+
+    # metadata:
+    createdDate: str = field(default=None) # ISO string
+    createdBy: str = field(default=None) # User GUID
+    updatedDate: str = field(default=None) # ISO string
+    updatedBy: str = field(default=None) # User GUID
+
+    # Same as above, but may be misspelled in some case when returned by the server.
+    # If you really need this data, check if either is None.
+    createdby: str = field(default=None) # Same as above, but may be misspelled. We don't care much so leave it the
+    updatedby: str = field(default=None) # Same as above, but may be misspelled. We don't care much so leave it there
+
+
+    # Note: This list is NOT guaranteed to be in chronological or version sorted order!
+    Upgrades: List[upgrade.Upgrade] = field(default=None)
+
+    # mostly irrelevant fields
+    firmwareUpgradeDescription: str = field(default=None)
+    firmwareDescription: str = field(default=None)
+    isSolutionTemplate: bool = field(default=None)
+
+    def __post_init__(self):
+        if self.Upgrades is not None:
+            # noinspection PyTypeChecker
+            # - complains about item, upgrade.Upgrade
+            self.Upgrades = [upgrade.Upgrade(**util.normalize_keys(util.filter_dict_to_dataclass_fields(item, upgrade.Upgrade))) for item in self.Upgrades]
+        else:
+            self.Upgrades = []
+
+    def draft_count(self):
+        return sum(1 for x in self.Upgrades if x.is_draft())
+
+    def release_count(self):
+        return sum(1 for x in self.Upgrades if x.is_released())
+
+    def releases(self) -> List[upgrade.Upgrade]:
+        return list(x for x in self.Upgrades if x.is_released())
+
+    def drafts(self) -> List[upgrade.Upgrade]:
+        return list(x for x in self.Upgrades if x.is_draft())
+
 
 
 @dataclass
@@ -40,19 +92,18 @@ def query(query_str: str = '[*]', params: Optional[Dict[str, any]] = None) -> li
 
 
 def get_by_name(name: str) -> Optional[Firmware]:
-    """ Lookup a firmware name - unique template ID supplied during creation """
+    """ Lookup a firmware by name - unique template ID supplied during creation """
     if name is None or len(name) == 0:
-        raise UsageError('get_by_name: The firmware name is missing')
+        raise UsageError('get_by_name: The firmware name parameter is missing')
     response = request(apiurl.ep_firmware, '/Firmware', params={"Name": name}, codes_ok=[HTTPStatus.NO_CONTENT])
     return response.data.get_one(dc=Firmware)
-
 
 def get_by_guid(guid: str) -> Optional[Firmware]:
     """ Lookup a firmware by GUID """
     if guid is None or len(guid) == 0:
         raise UsageError('get_by_guid: The firmware guid argument is missing')
     try:
-        response = request(apiurl.ep_device, f'/Firmware/{guid}')
+        response = request(apiurl.ep_firmware, f'/Firmware/{guid}')
         return response.data.get_one(dc=Firmware)
     except NotFoundResponseError:
         return None
@@ -62,7 +113,7 @@ def create(
         template_guid: str,
         name: str,
         hw_version: str,
-        initial_sw_version: str,
+        initial_sw_version: str = None,
         description: Optional[str] = None,
         upgrade_description: Optional[str] = None,
 ) -> FirmwareCreateResult:
@@ -74,7 +125,7 @@ def create(
     :param template_guid: GUID of the device template.
     :param name: Name of this template. This code must be uppercase alphanumeric an up to 10 characters in length.
     :param hw_version: Hardware Version of the firmware.
-    :param initial_sw_version: Hardware Version of the software.
+    :param initial_sw_version: Optional Software Version of the initial upgrade object. If not provided, a unique "build version" will be generated based on current time like 250317.185311.483.
     :param description: Optional description that can be added to the firmware.
     :param upgrade_description: Optional description that can be added to the firmware upgrade.
 
@@ -82,12 +133,15 @@ def create(
     """
 
     _validate_firmware_name(name)
-    if hw_version is not None:
-        # noinspection PyProtectedMember
-        upgrade._validate_version('hw_version', hw_version)
-    if initial_sw_version is not None:
-        # noinspection PyProtectedMember
-        upgrade._validate_version('initial_sw_version', initial_sw_version)
+
+    if initial_sw_version is None:
+        initial_sw_version = util.generate_unique_timestamp_string()
+
+    # noinspection PyProtectedMember
+    upgrade._validate_version('hw_version', hw_version)
+    # noinspection PyProtectedMember
+    upgrade._validate_version('initial_sw_version', initial_sw_version)
+
     data = {
         "deviceTemplateGuid": template_guid,
         "firmwareName": name,
@@ -101,7 +155,6 @@ def create(
 
     response = request(apiurl.ep_firmware, '/Firmware', json=data)
     return response.data.get_one(dc=FirmwareCreateResult)
-
 
 def deprecate_match_guid(guid: str) -> None:
     """

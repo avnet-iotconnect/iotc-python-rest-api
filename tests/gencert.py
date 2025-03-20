@@ -2,7 +2,7 @@ import json
 import os
 import sys
 
-from avnet.iotconnect.restapi.lib import util
+from avnet.iotconnect.restapi.lib import config
 
 DUID = os.environ.get('IOTC_DUID')
 
@@ -19,7 +19,7 @@ if DUID is None:
     print("Unable to determine DUID. Please provide iotcDeviceConfig.json or set the IOTC_DUID environment variable")
     sys.exit(-1)
 
-pkey_pem, cert_pem = util.generate_ec_cert_and_pkey(DUID)
+pkey_pem, cert_pem = config.generate_ec_cert_and_pkey(DUID)
 
 with open('device-pkey.pem', 'w') as file:
     file.write(pkey_pem)

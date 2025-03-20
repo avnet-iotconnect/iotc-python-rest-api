@@ -11,21 +11,14 @@
             "aggregateTypes": []
         },
         {
-            "name": "class",
+            "name": "sdk_version",
             "type": "STRING",
             "description": "",
             "unit": "",
             "aggregateTypes": []
         },
         {
-            "name": "confidence",
-            "type": "INTEGER",
-            "description": "",
-            "unit": "",
-            "aggregateTypes": []
-        },
-        {
-            "name": "requests3",
+            "name": "random",
             "type": "STRING",
             "description": "",
             "unit": "",
@@ -34,17 +27,10 @@
     ],
     "commands": [
         {
-            "name": "S3 credentials",
-            "command": "creds_s3",
+            "name": "sample_command",
+            "command": "sample_command",
             "requiredParam": true,
-            "requiredAck": false,
-            "isOTACommand": false
-        },
-        {
-            "name": "Start ML retraining process",
-            "command": "retrain",
-            "requiredParam": true,
-            "requiredAck": false,
+            "requiredAck": true,
             "isOTACommand": false
         }
     ],

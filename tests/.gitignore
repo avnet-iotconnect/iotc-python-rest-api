@@ -1,4 +1,7 @@
+/*.tmp
+
 # User test config files
 iotcDeviceConfig.json
 device-cert.pem
 device-pkey.pem
+

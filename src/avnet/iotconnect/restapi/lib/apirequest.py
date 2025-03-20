@@ -2,9 +2,8 @@
 # Copyright (C) 2025 Avnet
 # Authors: Nikola Markovic <nikola.markovic@avnet.com> et al.
 
-from dataclasses import make_dataclass, Field
 from http import HTTPStatus, HTTPMethod
-from typing import Optional, TypeVar, Union, Protocol, ClassVar, Any
+from typing import Optional, TypeVar, Union, Any
 
 import jmespath
 import requests
@@ -12,7 +11,7 @@ from requests.adapters import HTTPAdapter
 from requests.exceptions import RetryError
 from urllib3 import Retry
 
-from . import config
+from . import config, util
 from .error import ResponseError, AuthError, ApiException, SingleValueExpected, ValueExpected, ConflictResponseError, NotFoundResponseError, ConfigError
 
 _get_auth_headers = None  # avoid circular dependency
@@ -25,12 +24,9 @@ class Headers(dict[str, str]):
     V_APP_JSON = "application/json"
 
 
-# Credit: "intgr" at stackoverflow example https://stackoverflow.com/questions/61736151/how-to-make-a-typevar-generic-type-in-python-with-dataclass-constraint
-class DataclassInstance(Protocol):
-    __dataclass_fields__: ClassVar[dict[str, Field[Any]]]
+T = TypeVar('T', bound=util.DataclassInstance)
 
-
-T = TypeVar('T', bound=DataclassInstance)
+# ------------
 
 
 class Parser:
@@ -41,16 +37,10 @@ class Parser:
         ret = jmespath.search(expr, self.value)
         if dc is None:
             return ret
-        else:
-            object_list = []
-            for item in ret:
-                # some json keys can have dashes it seems
-                for key in item.copy().keys(): # copy so we don't affect keys while looping
-                    if '-' in key:
-                        new_key = key.replace('-', '_')
-                        item[new_key] = item.pop(key)
-                object_list.append(make_dataclass(dc.__name__, ((k, type(v)) for k, v in item.items()))(**item))
-            return object_list
+
+        # Instantiate the dataclass directly after normalizing keys
+        return [dc(**util.normalize_keys(util.filter_dict_to_dataclass_fields(item, dc))) for item in ret]
+
 
     def get_one(self, expr='[*]', dc: Optional[T] = None) -> Optional[Union[dict, T]]:
         values = self.get(expr, dc)
@@ -61,7 +51,7 @@ class Parser:
         return values[0]
 
     def get_or_raise(self, expr='[*]', dc: Optional[T] = None) -> Optional[Union[dict, T]]:
-        ret = self.get_one(self, expr, dc)
+        ret = self.get_one(expr, dc)
         if ret is None:
             raise ValueExpected
         return ret

@@ -12,7 +12,6 @@ from avnet.iotconnect.restapi.lib import template
 
 TEMPLATE_CODE = 'apidemo1'
 
-
 DUID = os.environ.get('IOTC_DUID')
 
 # try load duid from iotcDeviceConfig.json
@@ -48,7 +47,7 @@ with open('device-cert.pem', 'r') as file:
     result = device.create(template_guid=t.guid, duid=DUID, device_certificate=certificate)
     print('create=', result)
 
-print('delete device=', device.delete_match_guid(result))
+print('delete device=', device.delete_match_guid(result.newid))
 
 if do_delete_template:
     print('delete template=', template.delete_match_guid(t.guid))
