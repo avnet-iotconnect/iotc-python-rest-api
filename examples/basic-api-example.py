@@ -15,8 +15,8 @@ To learn more about API examples, refer to the (unit) tests directory in this re
 """
 
 print('Username:', config.username)
-print('User GUID:', token.decode_access_token().user.id)
-print('CPID:', token.decode_access_token().user.cpId)
+print('User GUID:', accesstoken.decode_access_token().user.id)
+print('CPID:', accesstoken.decode_access_token().user.cpId)
 print('Root Entity:', entity.get_root_entity())
 print("My User Details:", user.get_own_user())
 
