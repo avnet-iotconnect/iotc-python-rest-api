@@ -267,7 +267,7 @@ def init():
         on your system. This token will be used and refreshed automatically in subsequent invocations.
         """
     parser = argparse.ArgumentParser(
-        prog='iotccli',
+        prog='iotconnect-cli',
         description=main_description
     )
     subparsers = parser.add_subparsers(title="commands", description="Available subcommands", dest="command")
