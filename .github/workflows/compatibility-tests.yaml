@@ -5,7 +5,6 @@ on:
 
 jobs:
   run-tests:
-    needs: test-package-install
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
