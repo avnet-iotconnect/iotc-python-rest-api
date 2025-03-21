@@ -12,6 +12,8 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+      - name: Test Package Install
+        run: scripts/package.sh
 
   run-tests:
     needs: test-package-install
@@ -21,16 +23,8 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-latest]
         python-version: ["3.11", "3.12", "3.13"]
         platform:
-          - name: aws
-            env: poc
-            user: ${{ secrets.IOTC_AWS_USER }}
-            pass: ${{ secrets.IOTC_AWS_PASS }}
-            skey: ${{ secrets.IOTC_AWS_SKEY }}
-          - name: az
-            env: avnet
-            user: ${{ secrets.IOTC_AZ_USER }}
-            pass: ${{ secrets.IOTC_AZ_PASS }}
-            skey: ${{ secrets.IOTC_AZ_SKEY }}
+          - { name: "aws", env: "poc" }
+          - { name: "az", env: "avnet" }
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python ${{ matrix.python-version }}
@@ -47,7 +41,12 @@ jobs:
         run: scripts/local-build.sh
 
       - name: ${{ matrix.platform.name }} Login
-        run: iotconnect-cli -pf ${{ matrix.platform.name }} -e ${{ matrix.platform.env }} -u "${{ matrix.platform.user }}" -p "${{ matrix.platform.pass }}" -s "${{ matrix.platform.skey }}"
+        run: |
+          if [ "${{ matrix.platform.name }}" = "aws" ]; then
+            iotconnect-cli -pf ${{ matrix.platform.name }} -e ${{ matrix.platform.env }} -u "${{ secrets.IOTC_AWS_USER }}" -p "${{ secrets.IOTC_AWS_PASS }}" -s "${{ secrets.IOTC_AWS_SKEY }}"
+          elif [ "${{ matrix.platform.name }}" = "az" ]; then
+            iotconnect-cli -pf ${{ matrix.platform.name }} -e ${{ matrix.platform.env }} -u "${{ secrets.IOTC_AZ_USER }}" -p "${{ secrets.IOTC_AZ_PASS }}" -s "${{ secrets.IOTC_AZ_SKEY }}"
+          fi
 
       - name: ${{ matrix.platform.name }} CLI Test
         run: iotconnect-cli --help && iotconnect-cli --refresh
