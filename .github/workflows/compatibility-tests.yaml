@@ -1,0 +1,56 @@
+name: Compatibility Tests
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test-package-install:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+  run-tests:
+    needs: test-package-install
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python-version: ["3.11", "3.12", "3.13"]
+        platform:
+          - name: aws
+            env: poc
+            user: ${{ secrets.IOTC_AWS_USER }}
+            pass: ${{ secrets.IOTC_AWS_PASS }}
+            skey: ${{ secrets.IOTC_AWS_SKEY }}
+          - name: az
+            env: avnet
+            user: ${{ secrets.IOTC_AZ_USER }}
+            pass: ${{ secrets.IOTC_AZ_PASS }}
+            skey: ${{ secrets.IOTC_AZ_SKEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      # only check if package will build correctly
+      - name: Package Install
+        run: scripts/package.sh
+
+      # local install prep for next steps
+      - name: Local Install
+        run: scripts/local-build.sh
+
+      - name: ${{ matrix.platform.name }} Login
+        run: iotconnect-cli -pf ${{ matrix.platform.name }} -e ${{ matrix.platform.env }} -u "${{ matrix.platform.user }}" -p "${{ matrix.platform.pass }}" -s "${{ matrix.platform.skey }}"
+
+      - name: ${{ matrix.platform.name }} CLI Test
+        run: iotconnect-cli --help && iotconnect-cli --refresh
+
+      - name: ${{ matrix.platform.name }} Run Tests
+        run: scripts/run-tests.sh

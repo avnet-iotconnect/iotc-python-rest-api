@@ -73,7 +73,7 @@ described in the [environment variables](#configuration-environment-variables) s
 
 ```shell
 iotconnect-cli configure --help
-usage: iotccli configure [-h] [-u USERNAME] [-p PASSWORD] [-s SKEY] [--pf {aws,az}] [-e {poc,prod,avnet}]
+usage: iotconnect-cli configure [-h] [-u USERNAME] [-p PASSWORD] [-s SKEY] [--pf {aws,az}] [-e {poc,prod,avnet}]
 
 Configure IoTConnect credentials. Credentials from the environment will be used if arguments are not supplied. This action will store these settings configuration file and allow you
 to run this tool without authenticating for 24 hours since last authentication token (automatic) refresh. All arguments are required, but environment variables can be used instead.
