@@ -33,9 +33,9 @@ jobs:
         run: |
           set -x
           if [ "${{ matrix.platform.name }}" = "aws" ]; then
-            iotconnect-cli configure --pf ${{ matrix.platform.name }} -e ${{ matrix.platform.env }} -u "${{ secrets.IOTC_AWS_USER }}" -p "${{ secrets.IOTC_AWS_PASS }}" -s "${{ secrets.IOTC_AWS_SKEY }}"
+            iotconnect-cli configure --pf ${{ matrix.platform.name }} -e ${{ matrix.platform.env }} -u '${{ secrets.IOTC_AWS_USER }}' -p '${{ secrets.IOTC_AWS_PASS }}' -s '${{ secrets.IOTC_AWS_SKEY }}'
           elif [ "${{ matrix.platform.name }}" = "az" ]; then
-            iotconnect-cli configure --pf ${{ matrix.platform.name }} -e ${{ matrix.platform.env }} -u "${{ secrets.IOTC_AZ_USER }}" -p "${{ secrets.IOTC_AZ_PASS }}" -s "${{ secrets.IOTC_AZ_SKEY }}"
+            iotconnect-cli configure --pf ${{ matrix.platform.name }} -e ${{ matrix.platform.env }} -u '${{ secrets.IOTC_AZ_USER }}' -p '${{ secrets.IOTC_AZ_PASS }}' -s ${{ secrets.IOTC_AZ_SKEY }}'
           fi
 
       - name: ${{ matrix.platform.name }} CLI Test
