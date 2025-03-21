@@ -38,7 +38,7 @@ jobs:
           fi
 
       - name: ${{ matrix.platform.name }} CLI Test
-        run: iotconnect-cli --help && iotconnect-cli --refresh
+        run: iotconnect-cli --help && iotconnect-cli refresh
 
       - name: ${{ matrix.platform.name }} Run Tests
         run: scripts/run-tests.sh
