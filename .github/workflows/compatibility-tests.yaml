@@ -13,6 +13,7 @@ jobs:
         platform:
           - { name: "aws", env: "poc" }
           - { name: "az", env: "avnet" }
+      max-parallel: 1  # Forces sequential execution of all matrix combinations because of resource collisions
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python ${{ matrix.python-version }}
