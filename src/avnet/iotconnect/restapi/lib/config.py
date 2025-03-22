@@ -114,7 +114,7 @@ def write() -> bool:
 
             global skey, pf, env, access_token, refresh_token, token_time, token_expiry
             section = get_section(SECTION_USER)
-            print(hex(username.encode('utf-8').hex()))
+            print(":".join("{:02x}".format(ord(c)) for c in username))
             section['username'] = username
             section['pf'] = pf
             section['env'] = env
