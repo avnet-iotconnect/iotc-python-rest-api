@@ -46,13 +46,11 @@ def init():
         )
 
     def _process_configure(a: argparse.Namespace) -> None:
-        # do this str() casting to try address GitHub action secret potentially coming up as a byte because of non-ascii encoding
-        # and causing issues with config
-        config.env = str(a.env)
-        config.pf = str(a.platform)
-        config.skey = str(a.skey)
+        config.env = a.env
+        config.pf = a.platform
+        config.skey = a.skey
         apiurl.configure_using_discovery()
-        credentials.authenticate(username=str(a.username), password=str(a.password))
+        credentials.authenticate(username=a.username, password=a.password)
         print("Logged in successfully.")
 
     #######################

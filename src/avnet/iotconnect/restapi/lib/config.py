@@ -86,10 +86,11 @@ def init() -> None:
 
     section = get_section(SECTION_USER)
     if section.get('access_token') is not None:
-        global pf, env, skey, access_token, refresh_token, token_time, token_expiry
+        global pf, env, skey, username, access_token, refresh_token, token_time, token_expiry
         pf = section['pf']
         env = section['env']
         skey = section['skey']
+        username = section['username']
         access_token = section['access_token']
         refresh_token = section['refresh_token']
         token_time = int(section['token_time'])
@@ -114,7 +115,6 @@ def write() -> bool:
 
             global skey, pf, env, access_token, refresh_token, token_time, token_expiry
             section = get_section(SECTION_USER)
-            print(":".join("{:02x}".format(ord(c)) for c in username))
             section['username'] = username
             section['pf'] = pf
             section['env'] = env
@@ -130,6 +130,7 @@ def write() -> bool:
         return True
     except OSError:
         print("Could not write to %s" % _app_config_file)
+        return False
 
 
 # user can call this to lazy init section in preparation for read or write of individual section values
