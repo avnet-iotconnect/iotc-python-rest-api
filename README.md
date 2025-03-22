@@ -1,7 +1,7 @@
 # iotc-python-rest-api
-This project is the Python interface for IoTConnect REST API.
+This project is the Python interface for /IOTCONNECT REST API.
 
-The project provides a limited set of essential Python interfaces for the IoTConnect REST API.
+The project provides a limited set of essential Python interfaces for the /IOTCONNECT REST API.
 with the primary focus on to providing architecture that can be easily expanded by future 
 feature additions. Additional REST API interfaces can be easily implemented 
 by your custom applications when using the provided facilities.
@@ -11,11 +11,11 @@ functionality when compared to the native python API support.
 
 At this stage, the Python interface covers the following set of features 
 with partial implementations covering most common use cases:
-* Obtaining details about devices, templates, entities, IoTConnect users and OTA Firmware upgrades.
+* Obtaining details about devices, templates, entities, /IOTCONNECT users and OTA Firmware upgrades.
 * Creating and Deleting templates based on template JSON and x509 authentication based devices.
 * Managing OTA firmware and firmware upgrades, uploading files, scheduling and publishing OTA to devices.
 * Sending commands to devices.
-* Uploading and managing files IoTConnect File Storage.
+* Uploading and managing files /IOTCONNECT File Storage.
 * Creating and Deleting x509 authentication based devices.
 * Generating an ECC x509 self-signed certificate and a matching private key
 * Generating iotcDeviceConfig.json which can be used along with certificates
@@ -27,10 +27,15 @@ At the architecture level, the project infrastructure provides:
 * Authenticate, refresh and store the credentials into the OS user's home directories.
 * Streamlined REST API calls and error reporting.
 
+> [!NOTE]  
+> Devices created with REST API cannot be simply deleted in the /IOTCONNECT the UI. 
+> The *delete* icon will be grayed out. Either use this library to delete the device or 
+> check the checkbox next to your device in the device list and click *Delete* (Bulk Delete) 
+> at the rop of the device list page.
 
 ### Rest API Credentials
 
-This REST API implementation requires the user to authenticate with their IoTConnect
+This REST API implementation requires the user to authenticate with their /IOTCONNECT
 credentials, which in turn will store the session token into your 
 home directory of your operating system. 
 
@@ -75,7 +80,7 @@ described in the [environment variables](#configuration-environment-variables) s
 iotconnect-cli configure --help
 usage: iotconnect-cli configure [-h] [-u USERNAME] [-p PASSWORD] [-s SKEY] [--pf {aws,az}] [-e {poc,prod,avnet}]
 
-Configure IoTConnect credentials. Credentials from the environment will be used if arguments are not supplied. This action will store these settings configuration file and allow you
+Configure /IOTCONNECT credentials. Credentials from the environment will be used if arguments are not supplied. This action will store these settings configuration file and allow you
 to run this tool without authenticating for 24 hours since last authentication token (automatic) refresh. All arguments are required, but environment variables can be used instead.
 
 options:
@@ -91,8 +96,8 @@ options:
                         account environment - From settings -> Key Vault in the Web UI. IOTC_ENV environment variable can be used instead
 ```
 
-IoTConnect Solution Key is required to use the API. You will need to request the solution key for your account
-via the IoTConnect support ticket system available in the main menu of the IoTConnect web page.
+/IOTCONNECT Solution Key is required to use the API. You will need to request the solution key for your account
+via the /IOTCONNECT support ticket system available in the main menu of the /IOTCONNECT web page.
 
 Use your credentials to configure the API:
 
@@ -135,7 +140,7 @@ python3 lite-sdk-example.py
 ```
 
 When done testing or evaluating, the device should be deleted, as it will not be possible
-to use the IoTConnect Web UI to delete it:
+to use the /IOTCONNECT Web UI to delete it:
 
 ```shell
 iotconnect-cli delete-device apidemo-device01
@@ -154,8 +159,8 @@ These variables can be used to store your credentials permanently:
 
 | Name      | Description                                                                                       |
 |-----------|---------------------------------------------------------------------------------------------------|
-| IOTC_PF   | Platform of your IoTConnect account "aws" for AWS and "az" for Azure                              |
-| IOTC_ENV  | Environment IoTconnect account. It can be found at Settings -> Key Vault in the IoTConnect Web UI |
+| IOTC_PF   | Platform of your /IOTCONNECT account "aws" for AWS and "az" for Azure                              |
+| IOTC_ENV  | Environment IoTconnect account. It can be found at Settings -> Key Vault in the /IOTCONNECT Web UI |
 | IOTC_SKEY | Your Solution Key                                                                                 |
 | IOTC_USER | Your IoTconnect username (email)                                                                  |
 | IOTC_PASS | Your IoTconnect password                                                                          |
