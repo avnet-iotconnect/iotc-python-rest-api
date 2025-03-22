@@ -39,7 +39,10 @@ jobs:
           fi
 
       - name: ${{ matrix.platform.name }} CLI Test
-        run: iotconnect-cli --help && iotconnect-cli refresh
+        run: |
+          cat ~/.config/iotconnect/apicfg.ini
+          set -x
+          iotconnect-cli --help && iotconnect-cli refresh
 
       - name: ${{ matrix.platform.name }} Run Tests
         run: scripts/run-tests.sh
