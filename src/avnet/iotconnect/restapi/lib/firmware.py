@@ -52,8 +52,8 @@ class Firmware:
     def __post_init__(self):
         if self.Upgrades is not None:
             # workaround ofr AWS having additional nesting (https://awspoc.iotconnect.io/support-info/2025032416359950)
-            if isinstance(self.Upgrades, Dict) and self.Upgrades['Upgrade'] is not None:
-                self.Upgrades = self.Upgrades['Upgrade']
+            if isinstance(self.Upgrades, Dict) and self.Upgrades.get('Upgrade') is not None:
+                self.Upgrades = self.Upgrades.get('Upgrade')
             # noinspection PyTypeChecker
             # - complains about item, upgrade.Upgrade
             self.Upgrades = [upgrade.Upgrade(**util.normalize_keys(util.filter_dict_to_dataclass_fields(item, upgrade.Upgrade))) for item in self.Upgrades]
