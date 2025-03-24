@@ -26,8 +26,10 @@ jobs:
         run: scripts/package.sh
 
       # local install prep for next steps
+      # scripts/local-build.sh would install into Git bash environment. we want to use cli from Windows powershell
+      # so use standard OS environment instead just to be sure
       - name: Local Install
-        run: scripts/local-build.sh
+        run: python3 -m pip install -e .
 
       - name: ${{ matrix.platform.name }} Login AWS
         if: matrix.platform.name == 'aws'
