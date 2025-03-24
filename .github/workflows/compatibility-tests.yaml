@@ -39,12 +39,13 @@ jobs:
 
       - name: ${{ matrix.platform.name }} CLI Test
         run: | 
-          export IOTC_API_TRACE=1 
+          
           iotconnect-cli --help
+          export IOTC_API_TRACE=1 && \
           iotconnect-cli refresh
           
 
       - name: ${{ matrix.platform.name }} Run Tests
         run: |
-          export IOTC_API_TRACE=1
+          export IOTC_API_TRACE=1 && \
           scripts/run-tests.sh
