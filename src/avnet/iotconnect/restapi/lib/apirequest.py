@@ -165,6 +165,7 @@ def request(
             if isinstance(traced_data, dict) and traced_data.get('password') is not None:  # do not print passwords
                 traced_data = dict(traced_data)
                 traced_data['password'] = '*******'
+            return traced_data
 
         print("%s %s%s json=%s data=%s params=%s" % (method, endpoint, path, remove_password(json), remove_password(data), params))
 
