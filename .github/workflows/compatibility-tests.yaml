@@ -31,14 +31,14 @@ jobs:
       - name: Local Install
         run: python3 -m pip install -e .
 
-      - name: ${{ matrix.platform.name }} Login AWS
+      - name: AWS Login
         if: matrix.platform.name == 'aws'
         env:
           IOTC_API_TRACE: 1
         run: |
           iotconnect-cli configure --pf '${{ matrix.platform.name }}' -e '${{ matrix.platform.env }}' -u '${{ secrets.IOTC_AWS_USER }}' -p '${{ secrets.IOTC_AWS_PASS }}' -s '${{ secrets.IOTC_AWS_SKEY }}'
 
-      - name: ${{ matrix.platform.name }} Azure Login
+      - name: Azure Login
         if: matrix.platform.name == 'az'
         env:
           IOTC_API_TRACE: 1
