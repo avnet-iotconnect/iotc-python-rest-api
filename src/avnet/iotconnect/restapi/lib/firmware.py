@@ -154,7 +154,7 @@ def create(
     if description is not None:
         data["FirmwareDescription"] = description
     if upgrade_description is not None:
-        data["firmwareUpgradeDescription"] = description
+        data["firmwareUpgradeDescription"] = upgrade_description
 
     response = request(apiurl.ep_firmware, '/Firmware', json=data)
     return response.data.get_one(dc=FirmwareCreateResult)
