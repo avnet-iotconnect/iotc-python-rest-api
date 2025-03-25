@@ -42,10 +42,26 @@ d = device.get_by_duid(DUID)
 if d is not None:
     print('delete=', device.delete_match_guid(d.guid))
 
+t = template.get_by_template_code(TEMPLATE_CODE)
+if not t.isAttachedWithDevice:
+    print("Template is correctly not associated with a device.")
+else:
+    raise ValueError("Template seems to have a device associated with it")
+
+
 with open('device-cert.pem', 'r') as file:
     certificate = file.read()
     result = device.create(template_guid=t.guid, duid=DUID, device_certificate=certificate)
     print('create=', result)
+
+t = template.get_by_template_code(TEMPLATE_CODE)
+
+if t.isAttachedWithDevice:
+    print("Template is now associated with this device.")
+else:
+    raise ValueError("Template does not seem to have a device associated with it")
+
+
 
 print('delete device=', device.delete_match_guid(result.newid))
 

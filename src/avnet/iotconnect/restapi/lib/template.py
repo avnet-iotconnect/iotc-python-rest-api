@@ -6,9 +6,9 @@ import io
 import json
 from dataclasses import dataclass, field
 from http import HTTPMethod
-from typing import Optional, Dict
+from typing import Optional, Dict, List
 
-from . import apiurl
+from . import apiurl, command, util
 from .apirequest import request
 from .error import UsageError, ConflictResponseError, NotFoundResponseError
 
@@ -30,7 +30,36 @@ class Template:
     authType: int
     tag: str
     messageVersion: str
+
+    isEdgeSupport: bool
+
+    # tying to firmware
+    firmwareGuid: str = field(default=None),
+    firmwareName: str = field(default=None),
+
+    # metadata:
+    createdDate: str = field(default=None) # ISO string
+    createdBy: str = field(default=None) # User GUID
+    updatedDate: str = field(default=None) # ISO string
+    updatedBy: str = field(default=None) # User GUID
+
+    # other information
+    isValidateTemplate: int = field(default=None)
+    isValidEdgeSupport: int = field(default=None)
+    isValidType2Support: int = field(default=None)
+    isAttachedWithDevice: bool = field(default=None)
     greenGrass: bool = field(default=None)
+
+    commands: List[command.Command] = field(default=None)
+
+    def __post_init__(self):
+        if self.commands is not None:
+            # noinspection PyTypeChecker
+            # - complains about item, upgrade.Upgrade
+            self.commands = [command.Command(**util.normalize_keys(util.filter_dict_to_dataclass_fields(item, command.Command))) for item in self.commands]
+        else:
+            self.commands = []
+
 
 
 @dataclass

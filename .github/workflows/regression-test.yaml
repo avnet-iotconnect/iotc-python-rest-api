@@ -1,0 +1,60 @@
+name: Regression Test
+
+on:
+  workflow_dispatch:
+
+jobs:
+  run-tests:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+        python-version: ["3.11", "3.12", "3.13"]
+        platform:
+          - { name: "aws", env: "poc" }
+          - { name: "az", env: "avnet" }
+      max-parallel: 1  # Forces sequential execution of all matrix combinations because of resource collisions
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      # only check if package will build correctly
+      - name: Package Install
+        run: scripts/package.sh
+
+      # local install prep for next steps
+      # scripts/local-build.sh would install into Git bash environment. we want to use cli from Windows powershell
+      # so use standard OS environment instead just to be sure
+      - name: Local Install
+        run: python3 -m pip install -e .
+
+      - name: AWS Login
+        if: matrix.platform.name == 'aws'
+        env:
+          IOTC_API_TRACE: 1
+        run: |
+          iotconnect-cli configure --pf '${{ matrix.platform.name }}' -e '${{ matrix.platform.env }}' -u '${{ secrets.IOTC_AWS_USER }}' -p '${{ secrets.IOTC_AWS_PASS }}' -s '${{ secrets.IOTC_AWS_SKEY }}'
+
+      - name: Azure Login
+        if: matrix.platform.name == 'az'
+        env:
+          IOTC_API_TRACE: 1
+        run: |
+          iotconnect-cli configure --pf '${{ matrix.platform.name }}' -e '${{ matrix.platform.env }}' -u '${{ secrets.IOTC_AZ_USER }}' -p '${{ secrets.IOTC_AZ_PASS }}' -s '${{ secrets.IOTC_AZ_SKEY }}'
+
+      - name: ${{ matrix.platform.name }} CLI Test
+        env:
+          IOTC_API_TRACE: 1
+        run: |           
+          iotconnect-cli --help
+          iotconnect-cli refresh
+          
+
+      - name: ${{ matrix.platform.name }} Run Tests
+        env:
+          IOTC_API_TRACE: 1
+        run: |
+          scripts/run-tests.sh

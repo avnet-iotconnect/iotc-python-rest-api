@@ -127,6 +127,10 @@ device_json = config.generate_device_json(DUID)
 with open('iotcDeviceConfig.json', 'w') as f:
     f.write(device_json)
 
+# different ways to examine commands:
+print('commands[0] (get_by_template_code)', template.get_by_template_code(TEMPLATE_CODE).commands[0])
+print('commands[0] (get_by_guid)', template.get_by_guid(template_guid).commands[0])
+print('commands from command api (get_all)', command.get_all(template_guid)[0])
 sample_command = command.get_with_name(template_guid, 'sample_command')
 print(sample_command)
 

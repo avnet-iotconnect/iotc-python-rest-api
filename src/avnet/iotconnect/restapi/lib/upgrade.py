@@ -36,19 +36,20 @@ class Upgrade:
     updatedDate: str  # ISO string
     updatedBy: str  # User GUID
 
-    # not used
-    fileName: str  # not used? (probably compatibility with some old API version)
-    fileUrl: str  # not used? (probably compatibility with some old API version)
 
-    # urls=[{'url': 'https://pociotconnectblobstorage.blob.core.windows.net/firmware/B1EF896C-77CF-4A5E-A8DF-3F6EEA36B4C8.zip?sv=2020-04-08&se=2025-03-14T20%3A08%3A00Z&sr=b&sp=r&sig=cPwAU5deWCq30jsYflbrXhR1CzCdPiZvwKju6V8q6PM%3D'
-    # 'name': 'test.zip'}]))
-    urls: List[Url]
+    urls: List[Url] = field(default=None)
+
 
     # these fields relate to the Firmware object and are not present when we just create a blank Upgrade
     firmwareguid: str = field(default=None)  # guid of the Firmware object
     name: str = field(default=None)  # name of the firmware object associated with this upgrade
     hardware: str = field(default=None)  # hardware of the firmware object associated with this upgrade
     firmwareUpgradeDescription: str = field(default=None)
+
+    # not used (fileUrl only on azure)
+    fileName: str = field(default=None) # not used? (probably compatibility with some old API version)
+    fileUrl: str = field(default=None) # not used? (probably compatibility with some old API version)
+
 
     # shortcuts
     def is_draft(self):

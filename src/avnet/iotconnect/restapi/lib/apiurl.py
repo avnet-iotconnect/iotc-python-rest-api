@@ -6,7 +6,7 @@ from http import HTTPMethod
 
 import requests
 
-from avnet.iotconnect.restapi.lib.error import ConfigError
+from avnet.iotconnect.restapi.lib.error import ConfigError, ApiException
 
 # This file provides API endpoints by using discovery https://discovery.iotconnect.io/api/uisdk/solutionkey/your-solution-key/env/your-device-env?version=v2
 # for example and provides mapping similar to https://docs.iotconnect.io/iotconnect/rest-api/?env=uat&pf=az
@@ -34,10 +34,21 @@ def configure_using_discovery():
     from . import config
     # do a low level request here without using request local module in order to avoid circular dependencies
     response = requests.request(method=HTTPMethod.GET, url=f'https://discovery.iotconnect.io/api/uisdk/solutionkey/{config.skey}/env/{config.env}', params={'version': version, 'pf':config.pf}, headers={})
+    if config.api_trace_enabled:
+        print(f"GET https://discovery.iotconnect.io/api/uisdk/solutionkey/{config.skey}/env/{config.env} params: 'version': {version}, 'pf':{config.pf}")
+        print(f"Response JSON: {response.json()}")
+
     if response.status_code != 200:
         raise ConfigError(f'Unable to resolve API URLS for platform={config.pf} env={config.env} SKEY={config.skey}. Response code {response.status_code}, body: {response.text}')
 
     d = response.json().get('data')
+
+    if d is None:
+        error_message = f"There was an issue while performing discovery for platform:{config.pf} env:{config.env} version:{version} skey:{config.skey}"
+        message_detail = response.json().get('message')
+        if message_detail is not None:
+            error_message += " Server Reported: " + message_detail
+        raise ConfigError(error_message)
 
     ep_master = d.get("masterBaseUrl")
     ep_auth = d.get("authBaseUrl")
