@@ -30,6 +30,7 @@ print('create=', create_result)
 if create_result is None:
     raise Exception("Expected successful template creation")
 
+print('get_by_template_code=', template.get_by_template_code('apidemo1'))
 print('get_by_guid=', template.get_by_guid(create_result.deviceTemplateGuid))
 template.delete_match_guid(create_result.deviceTemplateGuid)
 print('template deleted')

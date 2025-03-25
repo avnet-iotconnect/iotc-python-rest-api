@@ -40,7 +40,21 @@ firmware_guid = firmware_create_result.newId
 upgrade_1_guid = firmware_create_result.firmwareUpgradeGuid
 
 # check what we get from the initial creation with the initial draft
-print('#0 firmware.get_by_guid', firmware.get_by_guid(firmware_guid))
+f = firmware.get_by_guid(firmware_guid)
+print('#0 firmware.get_by_guid', f)
+
+t = template.get_by_guid(template_guid)
+if t.firmwareGuid == firmware_guid:
+    print("Template relates to new firmware.")
+else:
+    raise ValueError("Template does not have firmware")
+
+if f.deviceTemplateGuid == template_guid:
+    print("Firmware relates to template.")
+else:
+    raise ValueError("Firmware does not have the template association")
+
+
 
 upgrade.upload(upgrade_1_guid, 'test.zip', file_name="filename-changed.zip")
 upgrade.publish(upgrade_1_guid)
