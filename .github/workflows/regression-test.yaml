@@ -1,4 +1,4 @@
-name: Compatibility Tests
+name: Regression Test
 
 on:
   workflow_dispatch:
