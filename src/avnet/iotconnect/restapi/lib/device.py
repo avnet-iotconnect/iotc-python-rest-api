@@ -36,7 +36,7 @@ class DeviceCreateResult:
     parentUniqueId: Optional[str] = field(default=None)
 
 
-def query(query_str: str = '[*]', params: Optional[Dict[str, any]] = None) -> list[Device]:
+def query(query_str: str = '[*]', params: Optional[Dict[str, str]] = None) -> list[Device]:
     response = request(apiurl.ep_device, '/Device')
     return response.data.get(expr=query_str, dc=Device)
 
@@ -44,7 +44,7 @@ def query(query_str: str = '[*]', params: Optional[Dict[str, any]] = None) -> li
 def get_by_guid(guid:str) -> Optional[Device]:
     """Lookup a device by device GUID"""
     if guid is None:
-        raise UsageError('get_by_duid: The device Unique ID (DUID) argument is missing')
+        raise UsageError('get_by_guid: The device GUID argument is missing')
     try:
         response = request(apiurl.ep_device, f'/Device/{guid}')
         return response.data.get_one(dc=Device)
@@ -82,13 +82,14 @@ def create(
     :param entity_guid: Specify GUID of the entity under which the device will be created. If not supplied, the account root entity will be used.
     """
     if template_guid is None:
-        raise UsageError('create_self_signed: Template GUID argument is missing')
+        raise UsageError('cert create: Template GUID argument is missing')
     if duid is None:
-        raise UsageError('create_self_signed:The device Unique ID (DUID) argument is missing')
+        raise UsageError('cert create: The device Unique ID (DUID) argument is missing')
     if device_certificate is None:
         if not is_ca_auth:
             raise UsageError('create_self_signed: Device certificate argument is missing')
 
+    cert_str = None
     if '-----BEGIN CERTIFICATE' in device_certificate:
         cert_str = device_certificate
     else:

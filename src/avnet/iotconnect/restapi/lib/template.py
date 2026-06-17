@@ -34,8 +34,8 @@ class Template:
     isEdgeSupport: bool
 
     # tying to firmware
-    firmwareGuid: str = field(default=None),
-    firmwareName: str = field(default=None),
+    firmwareGuid: str = field(default=None)
+    firmwareName: str = field(default=None)
 
     # metadata:
     createdDate: str = field(default=None) # ISO string
@@ -76,7 +76,7 @@ def _validate_template_code(code: str):
         raise UsageError('"code" parameter must contain only alphanumeric characters')
 
 def query(query_str: str = '[*]', params: Optional[Dict[str,any]] = None) -> list[Template]:
-    response = request(apiurl.ep_firmware, '/device-template')
+    response = request(apiurl.ep_device, '/device-template')
     return response.data.get(query_str=query_str, params=params, dc=Template)
 
 def get(params: dict[str, any]) -> Optional[Template]:

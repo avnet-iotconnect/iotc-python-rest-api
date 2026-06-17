@@ -89,7 +89,7 @@ def _validate_firmware_name(firmware_name: str):
         raise UsageError('"firmware_name" parameter must be upper case and contain only alphanumeric characters')
 
 
-def query(query_str: str = '[*]', params: Optional[Dict[str, any]] = None) -> list[Firmware]:
+def query(query_str: str = '[*]', params: Optional[Dict[str, str]] = None) -> list[Firmware]:
     response = request(apiurl.ep_firmware, '/Firmware')
     return response.data.get(query_str=query_str, params=params, dc=Firmware)
 
@@ -141,7 +141,7 @@ def create(
         initial_sw_version = util.generate_unique_timestamp_string()
 
     # noinspection PyProtectedMember
-    upgrade._validate_version('hw_version', hw_version)
+    upgrade._validate_version('hardware', hw_version)
     # noinspection PyProtectedMember
     upgrade._validate_version('initial_sw_version', initial_sw_version)
 

@@ -18,8 +18,8 @@ class User:
     companyCpid: str # It is recommended to use the token module to decode the access token to get this info
 
 
-def query(query_str: str = '[*]', params: Optional[Dict[str, any]] = None) -> list[User]:
-    response = request(apiurl.ep_firmware, '/User')
+def query(query_str: str = '[*]', params: Optional[Dict[str, str]] = None) -> list[User]:
+    response = request(apiurl.ep_user, '/User')
     return response.data.get(expr=query_str, params=params, dc=User)
 
 
