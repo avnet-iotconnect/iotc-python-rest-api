@@ -16,12 +16,12 @@ class Device:
     guid: str
     uniqueId: str
     displayName: str
-    isAcquired: int
     isActive: bool
-    isEdgeSupport: bool
-    isParentAcquired: bool
     deviceTemplateGuid: str
     messageVersion: str
+    isAcquired: Optional[int] = field(default=None)
+    isEdgeSupport: Optional[bool] = field(default=None)
+    isParentAcquired: Optional[bool] = field(default=None)
 
 
 @dataclass
@@ -37,8 +37,8 @@ class DeviceCreateResult:
 
 
 def query(query_str: str = '[*]', params: Optional[Dict[str, any]] = None) -> list[Device]:
-    response = request(apiurl.ep_firmware, '/Device')
-    return response.data.get(query_str=query_str, params=params, dc=Device)
+    response = request(apiurl.ep_device, '/Device')
+    return response.data.get(expr=query_str, dc=Device)
 
 
 def get_by_guid(guid:str) -> Optional[Device]:

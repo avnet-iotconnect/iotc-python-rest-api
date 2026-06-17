@@ -20,7 +20,7 @@ class User:
 
 def query(query_str: str = '[*]', params: Optional[Dict[str, any]] = None) -> list[User]:
     response = request(apiurl.ep_firmware, '/User')
-    return response.data.get(query_str=query_str, params=params, dc=User)
+    return response.data.get(expr=query_str, params=params, dc=User)
 
 
 def get_own_user() -> Optional[User]:
