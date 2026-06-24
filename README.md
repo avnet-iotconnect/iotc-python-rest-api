@@ -157,13 +157,13 @@ and then get familiar with the [unit tests](./tests).
 
 These variables can be used to store your credentials permanently:
 
-| Name      | Description                                                                                       |
-|-----------|---------------------------------------------------------------------------------------------------|
+| Name      | Description                                                                                        |
+|-----------|----------------------------------------------------------------------------------------------------|
 | IOTC_PF   | Platform of your /IOTCONNECT account "aws" for AWS and "az" for Azure                              |
 | IOTC_ENV  | Environment IoTconnect account. It can be found at Settings -> Key Vault in the /IOTCONNECT Web UI |
-| IOTC_SKEY | Your Solution Key                                                                                 |
-| IOTC_USER | Your IoTconnect username (email)                                                                  |
-| IOTC_PASS | Your IoTconnect password                                                                          |
+| IOTC_SKEY | Your Solution Key                                                                                  |
+| IOTC_USER | Your IoTconnect username (email)                                                                   |
+| IOTC_PASS | Your IoTconnect password                                                                           |
 
 
 ### Special Environment Variables 
