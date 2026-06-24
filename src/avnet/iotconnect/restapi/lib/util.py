@@ -8,8 +8,13 @@ import hashlib
 from dataclasses import Field, fields
 from dataclasses import is_dataclass
 from datetime import datetime, timezone
-from typing import TypeVar, Protocol, ClassVar, Any, Type
+from typing import Optional, TypeVar, Protocol, ClassVar, Any, Type
 from typing import Union, get_type_hints
+
+from .error import UsageError
+
+# The IoTConnect REST API expects UTC timestamps formatted as "YYYY-MM-DD HH:mm:ss".
+API_DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S"
 
 
 # Credit: "intgr" at stackoverflow example https://stackoverflow.com/questions/61736151/how-to-make-a-typevar-generic-type-in-python-with-dataclass-constraint
@@ -22,6 +27,34 @@ T = TypeVar('T', bound=DataclassInstance)
 # unique alphanumeric-sortable timestamp string - generated based on current time like 250317.185311.483
 def generate_unique_timestamp_string():
     return datetime.now(timezone.utc).strftime("%y%m%d.%H%M%S.%f")[:-3]  # Milliseconds precision with 3 most significant digits
+
+
+def to_api_datetime(value: datetime) -> str:
+    """
+    Convert a datetime into the UTC string the REST API expects (see API_DATETIME_FORMAT).
+
+    Naive datetimes are assumed to already be UTC; timezone-aware datetimes are converted to UTC.
+    """
+    if not isinstance(value, datetime):
+        raise UsageError('A datetime instance is required for API time arguments')
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=timezone.utc)
+    return value.astimezone(timezone.utc).strftime(API_DATETIME_FORMAT)
+
+
+def parse_iso_datetime(value: Optional[str]) -> datetime:
+    """
+    Leniently parse an ISO-8601 timestamp (e.g. "2026-06-24T17:23:59.590Z") into a datetime.
+
+    Intended for sorting: unparseable or missing values return the minimum (UTC) datetime so they
+    sort oldest rather than raising.
+    """
+    if not value:
+        return datetime.min.replace(tzinfo=timezone.utc)
+    try:
+        return datetime.fromisoformat(value.replace('Z', '+00:00'))
+    except ValueError:
+        return datetime.min.replace(tzinfo=timezone.utc)
 
 
 def filter_dict_to_dataclass_fields(item: dict, dc: Type[T]) -> dict:

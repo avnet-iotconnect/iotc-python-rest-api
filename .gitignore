@@ -2,6 +2,9 @@
 /.idea/
 /.vscode/
 
+# Safe space for temporary work files or AI transient instrcutions
+/work*/
+
 # Python Virtual Environment while devloping etc.
 /.venv/
 
@@ -14,6 +17,6 @@
 # when massaging for a release with absolute links
 /README.*.md
 
-# This will be generated when making an editable install wiht pip install -e .
+# This will be generated when making an editable install with pip install -e .
 src/iotconnect_rest_api.egg-info/
 
