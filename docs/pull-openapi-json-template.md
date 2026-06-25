@@ -48,4 +48,4 @@ read without rediscovering it.
 
 ## Services
 
-@@@BOD@@@
+@@@SERVICES_TABLE@@@

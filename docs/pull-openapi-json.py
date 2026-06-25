@@ -61,7 +61,7 @@ def service_name(key):
 
 
 # Placeholder in the README template that gets replaced with the generated Services section.
-README_PLACEHOLDER = '@@@BOD@@@'
+README_PLACEHOLDER = '@@@SERVICES_TABLE@@@'
 
 
 def discovery_label(key):

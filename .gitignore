@@ -2,6 +2,11 @@
 /.idea/
 /.vscode/
 
+# AI Agents and such
+/.continue/
+/.kilo/
+/.junie/
+
 # Safe space for temporary work files or AI transient instrcutions
 /work*/
 
