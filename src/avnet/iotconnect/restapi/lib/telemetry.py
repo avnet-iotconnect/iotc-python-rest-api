@@ -50,40 +50,6 @@ class DeviceSensorValue:
     DataType: Optional[str] = field(default=None)
 
 
-def _normalize_duids(duids: Union[str, List[str]]) -> List[str]:
-    """Accept a single DUID string or a list of them; return a clean, non-empty list."""
-    if isinstance(duids, str):
-        duids = [duids]
-    elif isinstance(duids, (list, tuple)):
-        duids = list(duids)
-    else:
-        raise UsageError('DUIDs must be a string or a list of strings')
-    duids = [d.strip() for d in duids if d is not None and d.strip()]
-    if len(duids) == 0:
-        raise UsageError('At least one DUID must be provided')
-    return duids
-
-
-def _fetch_device_page(duid: str, device_guid: str, from_str: str, to_str: str) -> List[TelemetryRecord]:
-    """Fetch one page of history for a single device and annotate each record with its DUID + GUID."""
-    response = request(
-        apiurl.ep_telemetry,
-        f'/Telemetry/attribute-history/device/{duid}/from/{from_str}/to/{to_str}',
-        codes_ok=[HTTPStatus.NO_CONTENT]
-    )
-    raw = response.data.value
-    feed = raw.get('feed') if isinstance(raw, dict) else None
-    records = []
-    for item in (feed or []):
-        records.append(TelemetryRecord(
-            uniqueId=item.get('uniqueId', duid),
-            deviceGuid=device_guid,
-            dTime=item.get('dTime'),
-            attr=item.get('attr') or {},
-        ))
-    return records
-
-
 def get_history(
         duids: Union[str, List[str]],
         from_time: datetime,
@@ -227,3 +193,37 @@ def get_current_values(duid: str) -> List[DeviceSensorValue]:
         DeviceSensorValue(**util.normalize_keys(util.filter_dict_to_dataclass_fields(item, DeviceSensorValue)))
         for item in items
     ]
+
+
+def _normalize_duids(duids: Union[str, List[str]]) -> List[str]:
+    """Accept a single DUID string or a list of them; return a clean, non-empty list."""
+    if isinstance(duids, str):
+        duids = [duids]
+    elif isinstance(duids, (list, tuple)):
+        duids = list(duids)
+    else:
+        raise UsageError('DUIDs must be a string or a list of strings')
+    duids = [d.strip() for d in duids if d is not None and d.strip()]
+    if len(duids) == 0:
+        raise UsageError('At least one DUID must be provided')
+    return duids
+
+
+def _fetch_device_page(duid: str, device_guid: str, from_str: str, to_str: str) -> List[TelemetryRecord]:
+    """Fetch one page of history for a single device and annotate each record with its DUID + GUID."""
+    response = request(
+        apiurl.ep_telemetry,
+        f'/Telemetry/attribute-history/device/{duid}/from/{from_str}/to/{to_str}',
+        codes_ok=[HTTPStatus.NO_CONTENT]
+    )
+    raw = response.data.value
+    feed = raw.get('feed') if isinstance(raw, dict) else None
+    records = []
+    for item in (feed or []):
+        records.append(TelemetryRecord(
+            uniqueId=item.get('uniqueId', duid),
+            deviceGuid=device_guid,
+            dTime=item.get('dTime'),
+            attr=item.get('attr') or {},
+        ))
+    return records
