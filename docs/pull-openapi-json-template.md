@@ -6,10 +6,10 @@ one JSON file per physical microservice.
 You can use these spect to inform your coding agents about how to use the /IOTCONNECT API.
 Based on these spects, you can extend this library's functionaluty. 
 
-* `[docs/pull-openapi-json-template.md` is a template used as input to the script below.
-* `work/mcp/schemas/RADME.md](work/mcp/schemas/RADME.md` is a Generated file.
+* `docs/pull-openapi-json-template.md` is a template used as input to the script below.
+* `work/schemas/RADME.md` is a Generated file.
 
-To generate ork/mcp/schemas/RADME.md, execute the script `docs/pull-openapi-json.py`:
+To generate work/schemas/RADME.md, execute the script `docs/pull-openapi-json.py`:
 ```bash
  export IOTC_ENV=poc # your environment
  export IOTC_PF=aws # your platform, though at this time azure does not support openapi specs

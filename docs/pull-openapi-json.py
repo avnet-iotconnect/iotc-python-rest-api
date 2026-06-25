@@ -117,7 +117,7 @@ def main():
     skey, env, pf = os.environ['IOTC_SKEY'], os.environ['IOTC_ENV'], os.environ['IOTC_PF']
 
     project_root = Path(__file__).parent.parent
-    schemas_dir = project_root / 'work/mcp/schemas'
+    schemas_dir = project_root / 'work/schemas'
     schemas_dir.mkdir(parents=True, exist_ok=True)
 
     services = fetch_discovery(skey, env, pf)
