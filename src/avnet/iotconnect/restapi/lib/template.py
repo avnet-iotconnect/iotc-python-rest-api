@@ -6,11 +6,12 @@ import io
 import json
 from dataclasses import dataclass, field
 from http import HTTPMethod
-from typing import Optional, Dict, List
+from typing import Optional, List
 
 from . import apiurl, command, util
 from .apirequest import request
 from .error import UsageError, ConflictResponseError, NotFoundResponseError
+from .query import Query, Page, api_param, run_query
 
 # Authentication types. See https://docs.iotconnect.io/iotconnect/sdk/message-protocol/device-message-2-1/reference-table/#authtypes
 AT_CA_SIGNED = 2
@@ -75,16 +76,33 @@ def _validate_template_code(code: str):
     elif not code.isalnum():
         raise UsageError('"code" parameter must contain only alphanumeric characters')
 
-def query(query_str: str = '[*]', params: Optional[Dict[str,any]] = None) -> list[Template]:
-    response = request(apiurl.ep_device, '/device-template')
-    return response.data.get(query_str=query_str, params=params, dc=Template)
+@dataclass
+class TemplateQuery(Query):
+    """
+    Filter options for :func:`list`. All fields optional; only the ones set are sent.
+    Inherits pagination (``page``/``page_size``/``sort_by``) from :class:`~.query.Query`.
+    """
+    name: Optional[str] = api_param(
+        'DeviceTemplateName', description='Device template name', examples=['My Template'])
+    auth_type: Optional[int] = api_param(
+        'AuthType', description='Authentication type (see AT_* constants)')
+    message_version: Optional[str] = api_param(
+        'MessageVersion', description='Template message version', examples=['2.1'])
+    is_edge: Optional[bool] = api_param('EdgeSupport', description='Only edge templates')
+    is_gateway: Optional[bool] = api_param('GatewaySupport', description='Only gateway templates')
+    is_low_bandwidth: Optional[bool] = api_param('IsLowBandwidth', description='Only low-bandwidth templates')
+    green_grass: Optional[bool] = api_param('greenGrass', description='Only Greengrass templates')
+    wireless: Optional[bool] = api_param('wireless', description='Only wireless templates')
 
-def get(params: dict[str, any]) -> Optional[Template]:
-    try:
-        response = request(apiurl.ep_device, '/device-template', params=params)
-        return response.data.get_one(dc=Template)
-    except ConflictResponseError:
-        return None
+
+def query(query: Optional[TemplateQuery] = None) -> Page[Template]:
+    """
+    Query device templates, with server-side filtering, sorting and pagination.
+
+    :param query: Filter/paging options. Defaults to the first page, unfiltered.
+    :return: A :class:`~.query.Page` of :class:`Template`.
+    """
+    return run_query(apiurl.ep_device, '/device-template', query or TemplateQuery(), Template)
 
 
 def get_by_template_code(template_code: str) -> Optional[Template]:

@@ -92,5 +92,5 @@ def _get_basic_token() -> str:
         Headers.N_ACCEPT: Headers.V_APP_JSON
     }
     response = request(apiurl.ep_auth, "/Auth/basic-token", headers=headers)
-    basic_token = response.body.get("data")
+    basic_token = response.body.get_object_value("data")
     return basic_token

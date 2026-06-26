@@ -5,7 +5,6 @@
 from http import HTTPStatus, HTTPMethod
 from typing import Optional, TypeVar, Union, Any
 
-import jmespath
 import requests
 from requests.adapters import HTTPAdapter
 from requests.exceptions import RetryError
@@ -33,32 +32,36 @@ class Parser:
     def __init__(self, value: Optional[dict]):
         self.value = value if value is not None else []
 
-    def get(self, expr: Optional[str] = '[*]', dc: Optional[T] = None) -> Union[list[dict], list[T]]:
-        ret = jmespath.search(expr, self.value)
+    def get(self, dc: Optional[T] = None) -> Union[list[dict], list[T]]:
+        """Return the response ``data`` array, optionally mapped to dataclass ``dc``.
+
+        For a top-level key on an object response (``status``, ``count``, ...) use
+        :meth:`get_object_value` instead.
+        """
+        ret = self.value if isinstance(self.value, list) else []
         if dc is None:
             return ret
 
         # Instantiate the dataclass directly after normalizing keys
         return [dc(**util.normalize_keys(util.filter_dict_to_dataclass_fields(item, dc))) for item in ret]
 
-
-    def get_one(self, expr='[*]', dc: Optional[T] = None) -> Optional[Union[dict, T]]:
-        values = self.get(expr, dc)
+    def get_one(self, dc: Optional[T] = None) -> Optional[Union[dict, T]]:
+        values = self.get(dc)
         if values is None or len(values) == 0:
             return None
         if len(values) > 1:
             raise SingleValueExpected
         return values[0]
 
-    def get_or_raise(self, expr='[*]', dc: Optional[T] = None) -> Optional[Union[dict, T]]:
-        ret = self.get_one(expr, dc)
+    def get_or_raise(self, dc: Optional[T] = None) -> Optional[Union[dict, T]]:
+        ret = self.get_one(dc)
         if ret is None:
             raise ValueExpected
         return ret
 
-    def get_object_value(self, expr) -> Any:
-        """ Return value from content that is not an array """
-        return jmespath.search(expr, self.value)
+    def get_object_value(self, key) -> Any:
+        """ Return a top-level value (by key) from content that is an object (not an array) """
+        return self.value.get(key) if isinstance(self.value, dict) else None
 
 
 class Response:
@@ -89,14 +92,14 @@ class Response:
         if self.status not in acceptable_codes:
 #            if len(self.body.value) == 0:
 #                raise ResponseError("Unable to obtain response", self.status)
-            value_status = self.body.get('status')
+            value_status = self.body.get_object_value('status')
             if value_status is not None:
-                message = self.body.get('message')
+                message = self.body.get_object_value('message')
                 if message is None:
                     message = "The server returned HTTP code %d." % value_status
                 else:
                     message = 'Server reported message: "%s."' % message  # give a cleaner report
-                errors = self.body.get('error')
+                errors = self.body.get_object_value('error')
                 # try parse out errors:
                 if errors is not None and type(errors) is list:
                     message += " Errors: "

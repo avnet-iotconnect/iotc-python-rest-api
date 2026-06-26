@@ -9,6 +9,7 @@ from typing import Optional, Dict, List
 from . import apiurl, upgrade, util
 from .apirequest import request
 from .error import UsageError, NotFoundResponseError
+from .query import Query, Page, api_param, run_query
 
 
 @dataclass
@@ -89,9 +90,32 @@ def _validate_firmware_name(firmware_name: str):
         raise UsageError('"firmware_name" parameter must be upper case and contain only alphanumeric characters')
 
 
-def query(query_str: str = '[*]', params: Optional[Dict[str, str]] = None) -> list[Firmware]:
-    response = request(apiurl.ep_firmware, '/Firmware')
-    return response.data.get(query_str=query_str, params=params, dc=Firmware)
+@dataclass
+class FirmwareQuery(Query):
+    """
+    Filter options for :func:`list`. All fields optional; only the ones set are sent.
+    Inherits pagination (``page``/``page_size``/``sort_by``) from :class:`~.query.Query`.
+    """
+    name: Optional[str] = api_param('Name', description='Firmware name')
+    hardware: Optional[str] = api_param('Hardware', description='Hardware version')
+    template_name: Optional[str] = api_param('TemplateName', description='Device template name')
+    search: Optional[str] = api_param('searchText', description='Free-text search')
+    include_deprecated: Optional[bool] = api_param(
+        'includeDeprecated', description='Include deprecated firmware')
+    is_edge: Optional[bool] = api_param('IsEdge', description='Only edge firmware')
+    is_gateway: Optional[bool] = api_param('IsGateway', description='Only gateway firmware')
+    is_low_bandwidth: Optional[bool] = api_param('IsLowBandwidth', description='Only low-bandwidth firmware')
+    wireless: Optional[bool] = api_param('Wireless', description='Only wireless firmware')
+
+
+def query(query: Optional[FirmwareQuery] = None) -> Page[Firmware]:
+    """
+    Query firmware entries, with server-side filtering, sorting and pagination.
+
+    :param query: Filter/paging options. Defaults to the first page, unfiltered.
+    :return: A :class:`~.query.Page` of :class:`Firmware`.
+    """
+    return run_query(apiurl.ep_firmware, '/Firmware', query or FirmwareQuery(), Firmware)
 
 
 def get_by_name(name: str) -> Optional[Firmware]:

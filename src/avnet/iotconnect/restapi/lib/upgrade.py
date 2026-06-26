@@ -5,11 +5,12 @@
 import os
 from dataclasses import dataclass, field
 from http import HTTPMethod
-from typing import Optional, Dict, List
+from typing import Optional, List
 
 from . import apiurl, credentials, util, entity
 from .apirequest import request, Headers
 from .error import UsageError, NotFoundResponseError
+from .query import Query, Page, api_param, run_query, is_guid
 
 # use these types as "type" query parameter when querying firmwares
 TYPE_RELEASED = "Released"
@@ -86,9 +87,39 @@ def _validate_version(version: str, what: str):
         raise UsageError(f'"{what}" parameter must contain only alphanumeric characters or periods')
 
 
-def query(query_str: str = '[*]', params: Optional[Dict[str, any]] = None) -> list[Upgrade]:
-    response = request(apiurl.ep_firmware, '/firmware-upgrade')
-    return response.data.get(query_str=query_str, params=params, dc=Upgrade)
+def _resolve_firmware(value: str) -> str:
+    """Accept a firmware GUID or firmware name; return the GUID."""
+    if is_guid(value):
+        return value
+    from . import firmware  # lazy: firmware imports upgrade, so import here to avoid a cycle
+    fw = firmware.get_by_name(value)
+    if fw is None:
+        raise UsageError(f'No firmware found with name "{value}"')
+    return fw.guid
+
+
+@dataclass
+class UpgradeQuery(Query):
+    """
+    Filter options for :func:`list`. All fields optional; only the ones set are sent.
+    Inherits pagination (``page``/``page_size``/``sort_by``) from :class:`~.query.Query`.
+    """
+    firmware: Optional[str] = api_param(
+        'firmwareguid', resolver=_resolve_firmware,
+        description='Filter by firmware, given as its name or GUID')
+    type: Optional[str] = api_param(
+        'type', description='Upgrade type: "Released", "Draft", or "both" (TYPE_* constants)')
+    search: Optional[str] = api_param('searchText', description='Free-text search')
+
+
+def query(query: Optional[UpgradeQuery] = None) -> Page[Upgrade]:
+    """
+    Query firmware upgrades, with server-side filtering, sorting and pagination.
+
+    :param query: Filter/paging options. Defaults to the first page, unfiltered.
+    :return: A :class:`~.query.Page` of :class:`Upgrade`.
+    """
+    return run_query(apiurl.ep_firmware, '/firmware-upgrade', query or UpgradeQuery(), Upgrade)
 
 
 def get_by_guid(guid: str) -> Optional[Upgrade]:

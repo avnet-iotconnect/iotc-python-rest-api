@@ -31,9 +31,13 @@ same way::
         template: Optional[str] = api_param("TemplateGuid", resolver=_resolve_template)
 """
 
-from dataclasses import dataclass, field, fields
+import re
+from dataclasses import dataclass, field, fields, replace
 from enum import Enum
+from http import HTTPStatus
 from typing import Any, Callable, Generic, Iterator, Optional, TypeVar, Union
+
+from .apirequest import request
 
 T = TypeVar('T')
 
@@ -65,6 +69,16 @@ def api_param(
         'description': description,
         'examples': examples,
     })
+
+
+_GUID_RE = re.compile(
+    r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
+)
+
+
+def is_guid(value: Any) -> bool:
+    """True if ``value`` looks like a GUID. Used by resolvers to skip lookups."""
+    return isinstance(value, str) and bool(_GUID_RE.match(value.strip()))
 
 
 def _serialize(value: Any) -> Any:
@@ -141,7 +155,7 @@ class Page(Generic[T]):
     Iterate the wrapper directly to walk the current page, or :meth:`all` to walk
     every page without doing ``pageNumber`` arithmetic::
 
-        page = device.list(DeviceQuery(status=DeviceStatus.ACTIVE))
+        page = device.query(DeviceQuery(status=DeviceStatus.ACTIVE))
         print(f"{page.total_count} active devices")
         for d in page.all():
             ...
@@ -177,3 +191,36 @@ class Page(Generic[T]):
             if not page.has_next or page._fetch is None:
                 return
             page = page._fetch(page.page_number + 1)
+
+
+def run_query(
+        endpoint: str,
+        path: str,
+        query: Query,
+        dc: type,
+        *,
+        codes_ok=(HTTPStatus.NO_CONTENT,),
+) -> Page:
+    """
+    Execute a paginated list query and return a :class:`Page` of ``dc`` instances.
+
+    Serializes ``query`` to API parameters, GETs ``endpoint + path``, maps the
+    response ``data`` to ``dc``, and reads the envelope ``count`` for pagination.
+    The returned page auto-pages via :meth:`Page.all`. ``HTTP 204`` is accepted by
+    default so an empty list comes back cleanly.
+
+    This is the single place list endpoints are wired up, so every ``*.query()``
+    behaves identically.
+    """
+    def fetch(page_number: int) -> Page:
+        q = replace(query, page=page_number)
+        response = request(endpoint, path, params=q.to_params(), codes_ok=list(codes_ok))
+        return Page(
+            items=response.data.get(dc=dc),
+            page_number=page_number,
+            page_size=q.page_size,
+            total_count=response.body.get_object_value('count') or 0,
+            _fetch=fetch,
+        )
+
+    return fetch(query.page)

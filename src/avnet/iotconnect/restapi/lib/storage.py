@@ -73,7 +73,7 @@ def get_files(module_type: str, file_ref_guid: str) -> List[File]:
 
     try:
         response = request(apiurl.ep_file, f'/File/{module_type}/{file_ref_guid}')
-        ret = response.data.get(expr='fileData')
+        ret = response.data.get_object_value('fileData') or []
         return [File(**x) for x in ret]
     except ConflictResponseError:
         return []

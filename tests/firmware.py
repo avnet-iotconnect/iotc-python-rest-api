@@ -1,6 +1,8 @@
 import avnet.iotconnect.restapi.lib.template as template
 from avnet.iotconnect.restapi.lib import firmware, upgrade, device, config, ota
 from avnet.iotconnect.restapi.lib.error import InvalidActionError, ConflictResponseError
+from avnet.iotconnect.restapi.lib.firmware import FirmwareQuery
+from avnet.iotconnect.restapi.lib.upgrade import UpgradeQuery
 
 TEMPLATE_CODE = 'apidemo1'
 FIRMWARE_NAME = 'APIDEMO1FW'
@@ -131,6 +133,17 @@ except ConflictResponseError:
 
 # now we should have two published firmwares with this guid
 print('#5 firmware.get_by_guid', firmware.get_by_guid(firmware_guid))
+
+# list / query: find our firmware and its upgrades via server-side filters.
+fw_page = firmware.query(FirmwareQuery(name=FIRMWARE_NAME))
+print('firmware.list total=', fw_page.total_count, 'names(first page)=', [x.name for x in fw_page])
+assert any(x.guid == firmware_guid for x in fw_page.all()), "Created firmware not found via list()"
+
+# UpgradeQuery.firmware accepts a firmware name or GUID (resolved to a GUID for us).
+up_page = upgrade.query(UpgradeQuery(firmware=FIRMWARE_NAME))
+print('upgrade.list (by firmware name) total=', up_page.total_count)
+up_guids = [u.guid for u in up_page.all()]
+assert upgrade_1_guid in up_guids and upgrade_2_guid in up_guids, "Upgrades not found via list()"
 
 upgrade.delete_match_guid(upgrade_2_guid)
 

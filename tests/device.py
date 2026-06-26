@@ -68,23 +68,23 @@ else:
 # --- list / query options -------------------------------------------------
 
 # Page wrapper carries the server-side total count alongside the current page.
-page = device.list()
+page = device.query()
 print('total devices=', page.total_count)
 print('first page size=', len(page))
 
 # Filter by our DUID; the result should contain exactly the device we created.
-page = device.list(DeviceQuery(duid=DUID))
+page = device.query(DeviceQuery(duid=DUID))
 print('filter by duid=', [dev.uniqueId for dev in page])
 assert any(dev.uniqueId == DUID for dev in page), "Created device not found by DUID filter"
 
 # Filter by template code (resolved to a GUID for us) + sort, small page size.
 q = DeviceQuery(template=TEMPLATE_CODE, sort_by=Sort('uniqueId', Order.ASC), page_size=10)
-page = device.list(q)
+page = device.query(q)
 print('filter by template=', [dev.uniqueId for dev in page])
 assert any(dev.uniqueId == DUID for dev in page), "Created device not found by template filter"
 
 # Enum-typed status filter; .all() walks every page transparently.
-active_duids = [dev.uniqueId for dev in device.list(DeviceQuery(status=DeviceStatus.ACTIVE)).all()]
+active_duids = [dev.uniqueId for dev in device.query(DeviceQuery(status=DeviceStatus.ACTIVE)).all()]
 print('active device count (all pages)=', len(active_duids))
 
 

@@ -5,7 +5,7 @@
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass, field, replace
+from dataclasses import dataclass, field
 from enum import Enum
 from http import HTTPMethod
 from typing import Optional, Union
@@ -13,7 +13,7 @@ from typing import Optional, Union
 from . import apiurl, entity, template
 from .apirequest import request
 from .error import UsageError, NotFoundResponseError, ConflictResponseError
-from .query import Query, Page, api_param
+from .query import Query, Page, api_param, run_query
 
 
 @dataclass
@@ -100,28 +100,15 @@ _GUID_RE = re.compile(
 )
 
 
-def list(query: Optional[DeviceQuery] = None) -> Page[Device]:
+def query(query: Optional[DeviceQuery] = None) -> Page[Device]:
     """
-    List devices, with server-side filtering, sorting and pagination.
+    Query devices, with server-side filtering, sorting and pagination.
 
     :param query: Filter/paging options. Defaults to the first page, unfiltered.
     :return: A :class:`~.query.Page` of :class:`Device`. Iterate it for the current
         page, or call ``.all()`` to walk every page transparently.
     """
-    q = query or DeviceQuery()
-
-    def fetch(page_number: int) -> Page[Device]:
-        page_query = replace(q, page=page_number)
-        response = request(apiurl.ep_device, '/Device', params=page_query.to_params())
-        return Page(
-            items=response.data.get(dc=Device),
-            page_number=page_number,
-            page_size=page_query.page_size,
-            total_count=response.body.get_object_value('count') or 0,
-            _fetch=fetch,
-        )
-
-    return fetch(q.page)
+    return run_query(apiurl.ep_device, '/Device', query or DeviceQuery(), Device)
 
 
 def get_by_guid(guid: str) -> Optional[Device]:
