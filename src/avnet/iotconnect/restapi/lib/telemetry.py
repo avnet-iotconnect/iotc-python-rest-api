@@ -2,10 +2,12 @@
 # Copyright (C) 2025 Avnet
 # Authors: Nikola Markovic <nikola.markovic@avnet.com> et al.
 
+from __future__ import annotations
+
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from http import HTTPStatus
-from typing import Optional, List, Union
+from typing import List, Optional, Union
 
 from . import apiurl, device, util
 from .apirequest import request
@@ -15,13 +17,17 @@ from .error import UsageError, NotFoundResponseError
 # to turn that into a clean error instead of a server-side rejection.
 _MAX_RANGE = timedelta(days=7)
 
-# Default window used by get_latest() when the caller does not specify a range. The history
-# feed is returned newest-first, so a single page over this window yields the most recent data.
+# Default window used when a query does not specify a range. The history feed is returned
+# newest-first, so a single page over this window yields the most recent data.
 _DEFAULT_LOOKBACK = timedelta(days=7)
 
 # POST /Telemetry/device/{uniqueId}/recent/{dataPoints} constrains dataPoints to this range.
 _RECENT_MIN = 10
 _RECENT_MAX = 50
+
+# A point in time accepted by telemetry query options: a native ``datetime`` or an ISO-8601
+# string (e.g. "2026-06-24T17:23:59Z"). Naive datetimes are treated as UTC.
+TimeInput = Union[datetime, str]
 
 
 @dataclass
@@ -50,34 +56,51 @@ class DeviceSensorValue:
     DataType: Optional[str] = field(default=None)
 
 
-def get_history(
-        duids: Union[str, List[str]],
-        from_time: datetime,
-        to_time: Optional[datetime] = None,
-        time_sorted: bool = True
-) -> List[TelemetryRecord]:
+@dataclass
+class TelemetryQuery:
+    """
+    Options for reading historical telemetry (see :func:`get_history`).
+
+    The time range can be given absolutely or relatively, using native Python types:
+
+    * ``from_time`` accepts a ``datetime``, an ISO-8601 string, or a ``timedelta``. A
+      ``timedelta`` is taken as a duration back from ``to_time`` - e.g.
+      ``timedelta(minutes=5)`` means "the last 5 minutes".
+    * ``to_time`` accepts a ``datetime`` or an ISO-8601 string, and defaults to now.
+
+    If ``from_time`` is omitted, a default 7-day lookback is used. The resulting window
+    must not exceed 7 days. Naive datetimes are treated as UTC.
+
+    :param duids: A single DUID, or a list of DUIDs (at least one is required).
+    :param from_time: Start of the range (datetime / ISO string / timedelta-before-``to_time``).
+    :param to_time: End of the range (datetime / ISO string). Defaults to now.
+    :param time_sorted: When True (default), records are sorted newest-first across all
+        devices. When False, they are grouped in the order the devices were supplied.
+    """
+    duids: Union[str, List[str]]
+    from_time: Optional[Union[datetime, str, timedelta]] = None
+    to_time: Optional[TimeInput] = None
+    time_sorted: bool = True
+
+
+def get_history(query: TelemetryQuery) -> List[TelemetryRecord]:
     """
     Get historical telemetry for one or more devices over a time range.
 
-    Accepts either a single DUID string or a list of DUIDs (at least one is required). Each
-    returned record is annotated with both its DUID (``uniqueId``) and its ``deviceGuid``.
+    Each returned record is annotated with both its DUID (``uniqueId``) and its
+    ``deviceGuid``. See :class:`TelemetryQuery` for the range options - the ``from_time``
+    union covers the common cases without dedicated helpers::
 
-    Note: this fetches the most recent page per device. The IoTConnect multi-device history
-    endpoint is currently unreliable, so this iterates the per-device history endpoint instead.
+        get_history(TelemetryQuery("dev"))                              # latest (default lookback)
+        get_history(TelemetryQuery("dev", from_time=timedelta(minutes=5)))  # last 5 minutes
+        get_history(TelemetryQuery("dev", from_time=some_datetime))     # since a point in time
 
-    :param duids: A single DUID, or a list of DUIDs.
-    :param from_time: Oldest point in time to include. Naive datetimes are treated as UTC.
-    :param to_time: Newest point in time to include. Defaults to the current time (UTC).
-    :param time_sorted: When True (default), the combined result is sorted newest-first across
-        all devices. When False, records are grouped in the order the devices were supplied.
-    :return: A list of TelemetryRecord.
+    Note: this fetches the most recent page per device. The multi-device endpoint
+    (POST /Telemetry/history) returns HTTP 500 on valid, correctly-formatted input
+    (verified 2026-06-25), so this iterates the per-device history endpoint instead.
     """
-    duids = _normalize_duids(duids)
-    if to_time is None:
-        to_time = datetime.now(timezone.utc)
-    if to_time - from_time > _MAX_RANGE:
-        raise UsageError('The telemetry history range must not exceed 7 days')
-
+    duids = _normalize_duids(query.duids)
+    from_time, to_time = _resolve_range(query)
     from_str = util.to_api_datetime(from_time)
     to_str = util.to_api_datetime(to_time)
 
@@ -88,57 +111,12 @@ def get_history(
             raise NotFoundResponseError(f'get_history: Device with DUID "{duid}" not found')
         records.extend(_fetch_device_page(duid, dev.guid, from_str, to_str))
 
-    if time_sorted:
+    # The history endpoint has no sortBy (path params only), and we fetch each device's
+    # feed separately, so the concatenation across devices is not globally ordered. Sort
+    # client-side to merge the per-device feeds into one newest-first stream.
+    if query.time_sorted:
         records.sort(key=lambda r: util.parse_iso_datetime(r.dTime), reverse=True)
     return records
-
-
-def get_latest(duids: Union[str, List[str]], time_sorted: bool = True) -> List[TelemetryRecord]:
-    """
-    Get the most recent page of telemetry for one or more devices.
-
-    Convenience wrapper around :func:`get_history` using a default lookback window. Intended for
-    "just show me the latest data" use cases where an explicit range is not needed.
-
-    :param duids: A single DUID, or a list of DUIDs.
-    """
-    now = datetime.now(timezone.utc)
-    return get_history(duids, from_time=now - _DEFAULT_LOOKBACK, to_time=now, time_sorted=time_sorted)
-
-
-def get_since(
-        duids: Union[str, List[str]],
-        oldest: datetime,
-        time_sorted: bool = True
-) -> List[TelemetryRecord]:
-    """
-    Get telemetry for one or more devices from the ``oldest`` time up to now.
-
-    :param duids: A single DUID, or a list of DUIDs.
-    :param oldest: Oldest point in time to include. Naive datetimes are treated as UTC.
-    """
-    return get_history(duids, from_time=oldest, time_sorted=time_sorted)
-
-
-def get_last(
-        duids: Union[str, List[str]],
-        period: timedelta,
-        time_sorted: bool = True
-) -> List[TelemetryRecord]:
-    """
-    Get telemetry for one or more devices over the most recent ``period`` of time.
-
-    For example, the last five minutes of data::
-
-        telemetry.get_last("my-device", timedelta(minutes=5))
-
-    :param duids: A single DUID, or a list of DUIDs.
-    :param period: How far back from now to look.
-    """
-    if not isinstance(period, timedelta):
-        raise UsageError('get_last: "period" must be a timedelta')
-    now = datetime.now(timezone.utc)
-    return get_history(duids, from_time=now - period, to_time=now, time_sorted=time_sorted)
 
 
 def get_recent(
@@ -193,6 +171,27 @@ def get_current_values(duid: str) -> List[DeviceSensorValue]:
         DeviceSensorValue(**util.normalize_keys(util.filter_dict_to_dataclass_fields(item, DeviceSensorValue)))
         for item in items
     ]
+
+
+# --- internals -------------------------------------------------------------
+
+def _resolve_range(query: TelemetryQuery) -> tuple[datetime, datetime]:
+    """Turn a query's flexible time inputs into a validated (from, to) datetime pair."""
+    now = datetime.now(timezone.utc)
+    to_time = util.coerce_datetime(query.to_time) if query.to_time is not None else now
+
+    if query.from_time is None:
+        from_time = to_time - _DEFAULT_LOOKBACK
+    elif isinstance(query.from_time, timedelta):
+        from_time = to_time - query.from_time
+    else:
+        from_time = util.coerce_datetime(query.from_time)
+
+    if from_time > to_time:
+        raise UsageError('The telemetry range "from_time" must be before "to_time"')
+    if to_time - from_time > _MAX_RANGE:
+        raise UsageError('The telemetry history range must not exceed 7 days')
+    return from_time, to_time
 
 
 def _normalize_duids(duids: Union[str, List[str]]) -> List[str]:

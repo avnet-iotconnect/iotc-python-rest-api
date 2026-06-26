@@ -72,12 +72,14 @@ class DeviceQuery(Query):
         'UniqueId', description='Device unique ID (DUID)', examples=['my-device-01'])
     name: Optional[str] = api_param(
         'Name', description='Device display name')
+    # resolvers are wrapped in lambdas so they can be defined lower in the file
+    # (field defaults are evaluated now, but the lambda body is not).
     template: Optional[str] = api_param(
-        'TemplateGuid', resolver=_resolve_template,
+        'TemplateGuid', resolver=lambda v: _resolve_template(v),
         description='Filter by device template, given as its template code or GUID',
         examples=['mytmpl01'])
     entity: Optional[str] = api_param(
-        'EntityGuid', resolver=_resolve_entity,
+        'EntityGuid', resolver=lambda v: _resolve_entity(v),
         description='Filter by entity, given as its name or GUID')
     status: Optional[DeviceStatus] = api_param(
         'Status', description='Filter by connectivity status', examples=['active'])

@@ -10,7 +10,7 @@ from datetime import datetime, timedelta, timezone
 
 import avnet.iotconnect.restapi.lib.telemetry as telemetry
 from avnet.iotconnect.restapi.lib.error import UsageError
-from avnet.iotconnect.restapi.lib.telemetry import TelemetryRecord, DeviceSensorValue
+from avnet.iotconnect.restapi.lib.telemetry import TelemetryRecord, DeviceSensorValue, TelemetryQuery
 
 """
 Sanity checks for the telemetry read functions. These hit a live account, so a
@@ -52,20 +52,21 @@ print('get_recent count=', len(recent))
 assert isinstance(recent, list)
 
 
-# --- history helpers ------------------------------------------------------
+# --- history (single entry point: get_history(TelemetryQuery)) -------------
 
-latest = telemetry.get_latest(DUID)
-print('get_latest count=', len(latest))
+# Latest (default lookback) - the common case, no range needed.
+latest = telemetry.get_history(TelemetryQuery(duids=DUID))
+print('latest count=', len(latest))
 assert isinstance(latest, list)
 assert all(isinstance(r, TelemetryRecord) for r in latest)
 
-last_hour = telemetry.get_last(DUID, timedelta(hours=1))
-print('get_last(1h) count=', len(last_hour))
-assert isinstance(last_hour, list)
-
-since = telemetry.get_since(DUID, datetime.now(timezone.utc) - timedelta(days=1))
-print('get_since(1d) count=', len(since))
-assert isinstance(since, list)
+# "last N" and "since T" are expressed through the from_time union, which accepts a
+# native datetime, an ISO-8601 string, or a timedelta (duration back from to_time).
+q_dt = TelemetryQuery(duids=DUID, from_time=datetime.now(timezone.utc) - timedelta(hours=2))  # since a datetime
+q_td = TelemetryQuery(duids=DUID, from_time=timedelta(hours=1))                                # the last hour
+q_str = TelemetryQuery(duids=DUID, from_time=(datetime.now(timezone.utc) - timedelta(hours=2)).isoformat())  # ISO string
+print('history via datetime/timedelta/str=',
+      len(telemetry.get_history(q_dt)), len(telemetry.get_history(q_td)), len(telemetry.get_history(q_str)))
 
 # results are annotated with both identifiers and sorted newest-first
 if len(latest) > 0:
@@ -77,10 +78,16 @@ if len(latest) > 0:
 # --- input validation (no network needed) ---------------------------------
 
 try:
-    telemetry.get_history(DUID, from_time=datetime.now(timezone.utc) - timedelta(days=30))
+    telemetry.get_history(TelemetryQuery(duids=DUID, from_time=timedelta(days=30)))
     raise AssertionError("Expected a UsageError for a range wider than 7 days")
 except UsageError:
     print("Correctly rejected a history range wider than 7 days.")
+
+try:
+    telemetry.get_history(TelemetryQuery(duids=DUID, from_time="not-a-date"))
+    raise AssertionError("Expected a UsageError for an unparseable time string")
+except UsageError:
+    print("Correctly rejected an unparseable time string.")
 
 try:
     telemetry.get_recent(DUID, data_points=5)

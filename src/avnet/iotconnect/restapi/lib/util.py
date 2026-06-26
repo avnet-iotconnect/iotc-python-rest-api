@@ -57,6 +57,28 @@ def parse_iso_datetime(value: Optional[str]) -> datetime:
         return datetime.min.replace(tzinfo=timezone.utc)
 
 
+def coerce_datetime(value: Union[datetime, str]) -> datetime:
+    """
+    Accept a native ``datetime`` or an ISO-8601 string and return a timezone-aware datetime.
+
+    Lets time-bound query options take either a Python ``datetime`` or a string for
+    convenience. Strings are parsed leniently (a trailing "Z" is accepted); naive
+    datetimes are assumed to be UTC. Raises :class:`UsageError` on an unparseable value.
+    """
+    if isinstance(value, datetime):
+        dt = value
+    elif isinstance(value, str):
+        try:
+            dt = datetime.fromisoformat(value.replace('Z', '+00:00'))
+        except ValueError:
+            raise UsageError(f'Could not parse "{value}" as an ISO-8601 datetime')
+    else:
+        raise UsageError('A time value must be a datetime or an ISO-8601 string')
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt
+
+
 def filter_dict_to_dataclass_fields(item: dict, dc: Type[T]) -> dict:
     """Filter a dictionary to include only fields defined in the dataclass."""
     valid_fields = {f.name for f in fields(dc)}

@@ -295,7 +295,7 @@ def init():
         if len(duids) == 0:
             print("At least one DUID must be provided.")
             sys.exit(1)
-        records = telemetry.get_latest(duids)
+        records = telemetry.get_history(telemetry.TelemetryQuery(duids=duids))
         # One entry per line. Device GUID is omitted from CLI output (it is for lib access);
         # dTime is already GMT/UTC, so there is no separate timezone field.
         for r in records:
