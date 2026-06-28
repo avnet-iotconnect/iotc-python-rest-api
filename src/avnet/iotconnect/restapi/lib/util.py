@@ -80,9 +80,30 @@ def coerce_datetime(value: Union[datetime, str]) -> datetime:
 
 
 def filter_dict_to_dataclass_fields(item: dict, dc: Type[T]) -> dict:
-    """Filter a dictionary to include only fields defined in the dataclass."""
-    valid_fields = {f.name for f in fields(dc)}
-    return {k: v for k, v in item.items() if k in valid_fields}
+    """
+    Filter a dictionary to include only fields defined in the dataclass.
+
+    A field may declare alternate incoming JSON key names via its metadata, e.g.
+    ``field(metadata={'aliases': ['code']})``. This accommodates endpoints that
+    return the same concept under different keys (e.g. the template list endpoint
+    returns ``code``/``name`` while the single-get endpoints return
+    ``templateCode``/``templateName``). The canonical key, when present, wins over
+    any alias.
+    """
+    valid_fields = set()
+    alias_map = {}  # incoming alias key -> canonical field name
+    for f in fields(dc):
+        valid_fields.add(f.name)
+        for alias in f.metadata.get('aliases', ()):
+            alias_map[alias] = f.name
+
+    result = {}
+    for k, v in item.items():
+        if k in valid_fields:
+            result[k] = v
+        elif k in alias_map and alias_map[k] not in item:
+            result[alias_map[k]] = v
+    return result
 
 def normalize_keys(item: dict) -> dict:
     """Replace dashes with underscores in dictionary keys to match dataclass field names."""

@@ -24,15 +24,13 @@ AT_CA_INDIVIDUAL = 7
 @dataclass
 class Template:
     guid: str
-    templateCode: str
-    templateName: str
+    templateCode: str = field(metadata={'aliases': ['code']})
+    templateName: str = field(metadata={'aliases': ['name']})
     isEdgeSupport: bool
     isIotEdgeEnable: bool
     authType: int
     tag: str
     messageVersion: str
-
-    isEdgeSupport: bool
 
     # tying to firmware
     firmwareGuid: str = field(default=None)

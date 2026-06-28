@@ -18,6 +18,7 @@
 /dist
 /*.gz
 /*.whl
+__pycache__
 
 # when massaging for a release with absolute links
 /README.*.md
