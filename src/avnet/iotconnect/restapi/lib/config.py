@@ -47,7 +47,7 @@ token_time = 0
 
 # app settings ------
 # Note: Never write this setting, only read with os.environ taking precedence:
-api_trace_enabled = True if os.environ.get("IOTC_API_TRACE") is not None else True
+api_trace_enabled = True if os.environ.get("IOTC_API_TRACE") is not None else False
 
 # -- END CONFIGURABLE VALUES --- #
 
