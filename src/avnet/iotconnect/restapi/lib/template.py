@@ -62,6 +62,52 @@ class Template:
 
 
 @dataclass
+class TemplateAttribute:
+    """A telemetry attribute (data point) of a device template. Fetch with :func:`get_attributes`."""
+    guid: str
+
+    localName: str = field(default=None)  # name as it appears in telemetry payloads
+    displayName: str = field(default=None)
+    description: str = field(default=None)
+
+    dataTypeName: str = field(default=None)  # STRING, NUMBER, BOOLEAN, DECIMAL, OBJECT, ...
+    dataTypeGuid: str = field(default=None)
+    unit: str = field(default=None)
+    dataValidation: str = field(default=None)
+
+    sequence: int = field(default=None)
+    tag: str = field(default=None)
+    parentTemplateAttributeGuid: str = field(default=None)  # set on children of an OBJECT attribute
+
+    createdDate: str = field(default=None)
+    updatedDate: str = field(default=None)
+
+    def normalized(self) -> dict:
+        """
+        Compact view for "what telemetry can I send": GUIDs, timestamps and ordering
+        dropped, ``None``/empty values omitted, keys renamed to the device-template
+        JSON vocabulary, e.g. ``{'name': 'temperature', 'type': 'NUMBER', 'unit': 'C'}``.
+        """
+        out: dict = {}
+        if self.localName:
+            out['name'] = self.localName
+        if self.dataTypeName:
+            out['type'] = self.dataTypeName
+        if self.unit:
+            out['unit'] = self.unit
+        if self.description:
+            out['description'] = self.description
+        if self.displayName and self.displayName != self.localName:
+            out['displayName'] = self.displayName
+        if self.dataValidation:
+            out['validation'] = self.dataValidation
+        if self.tag:
+            out['tag'] = self.tag
+        return out
+
+
+
+@dataclass
 class TemplateCreateResult:
     deviceTemplateGuid: str
 
@@ -121,6 +167,46 @@ def get_by_guid(guid: str) -> Optional[Template]:
     except NotFoundResponseError:
         return None
 
+
+def get_attributes(template_guid: str) -> List[TemplateAttribute]:
+    """
+    Telemetry attribute schema of a template, ordered by ``sequence``; empty if the
+    template has none or does not exist. Complements :func:`get_by_guid`, which
+    returns metadata and ``commands`` but not attributes.
+    """
+    if template_guid is None:
+        raise UsageError('get_attributes: the template_guid argument is required')
+
+    try:
+        # large pageSize so the schema is not truncated on big templates
+        response = request(apiurl.ep_device, f'/template-attribute/{template_guid}', params={'pageSize': 1000})
+        attrs = response.data.get(dc=TemplateAttribute)
+        # endpoint rejects sortBy, so order client-side; attributes without a sequence sort last
+        attrs.sort(key=lambda a: a.sequence if a.sequence is not None else float('inf'))
+        return attrs
+    except ConflictResponseError:
+        return []
+
+
+def get_attributes_normalized(template_guid: str) -> List[dict]:
+    """:func:`get_attributes` passed through :func:`normalize_attributes`."""
+    return normalize_attributes(get_attributes(template_guid))
+
+def normalize_attributes(attributes: List[TemplateAttribute]) -> List[dict]:
+    """
+    :meth:`TemplateAttribute.normalized` applied across a template, with children of
+    ``OBJECT`` attributes nested under their parent's ``attributes`` list. Input order
+    is preserved.
+    """
+    nodes = {a.guid: a.normalized() for a in attributes}
+    roots: List[dict] = []
+    for a in attributes:
+        parent = nodes.get(a.parentTemplateAttributeGuid)
+        if parent is not None:
+            parent.setdefault('attributes', []).append(nodes[a.guid])
+        else:
+            roots.append(nodes[a.guid])
+    return roots
 
 def create(
         template_json_path: str,
