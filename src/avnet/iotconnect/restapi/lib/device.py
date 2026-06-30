@@ -68,10 +68,13 @@ class DeviceQuery(Query):
     sent to the server. Inherits pagination (``page``, ``page_size``, ``sort_by``)
     from :class:`~.query.Query`.
     """
-    duid: Optional[str] = api_param(
-        'UniqueId', description='Device unique ID (DUID)', examples=['my-device-01'])
-    name: Optional[str] = api_param(
-        'Name', description='Device display name')
+    duid_contains: Optional[str] = api_param(
+        'UniqueId',
+        description='Search devices whose DUID contains this text (case-insensitive substring). '
+                    'For an exact device, use get_by_duid() instead.',
+        examples=['psoc-'])
+    # No name filter: the /Device 'Name' query param is ignored by the server (returns the
+    # full set for any value), so it is intentionally not exposed. Narrow by duid_contains instead.
     # resolvers are wrapped in lambdas so they can be defined lower in the file
     # (field defaults are evaluated now, but the lambda body is not).
     template: Optional[str] = api_param(

@@ -72,10 +72,10 @@ page = device.query()
 print('total devices=', page.total_count)
 print('first page size=', len(page))
 
-# Filter by our DUID; the result should contain exactly the device we created.
-page = device.query(DeviceQuery(duid=DUID))
-print('filter by duid=', [dev.uniqueId for dev in page])
-assert any(dev.uniqueId == DUID for dev in page), "Created device not found by DUID filter"
+# Substring DUID search; the result should contain the device we created.
+page = device.query(DeviceQuery(duid_contains=DUID))
+print('search by duid_contains=', [dev.uniqueId for dev in page])
+assert any(dev.uniqueId == DUID for dev in page), "Created device not found by duid_contains search"
 
 # Filter by template code (resolved to a GUID for us) + sort, small page size.
 q = DeviceQuery(template=TEMPLATE_CODE, sort_by=Sort('uniqueId', Order.ASC), page_size=10)
