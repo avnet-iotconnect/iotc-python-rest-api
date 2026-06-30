@@ -205,13 +205,13 @@ records = telemetry.get_history(TelemetryQuery("my-device-01", from_time=timedel
 
 These variables can be used to store your credentials permanently:
 
-| Name      | Description                                                                                        |
-|-----------|----------------------------------------------------------------------------------------------------|
-| IOTC_PF   | Platform of your /IOTCONNECT account "aws" for AWS and "az" for Azure                              |
-| IOTC_ENV  | Environment IoTconnect account. It can be found at Settings -> Key Vault in the /IOTCONNECT Web UI |
-| IOTC_SKEY | Your Solution Key                                                                                  |
-| IOTC_USER | Your IoTconnect username (email)                                                                   |
-| IOTC_PASS | Your IoTconnect password                                                                           |
+| Name      | Description                                                                                         |
+|-----------|-----------------------------------------------------------------------------------------------------|
+| IOTC_PF   | Platform of your /IOTCONNECT account "aws" for AWS and "az" for Azure                               |
+| IOTC_ENV  | Environment /IOTCONNECT account. It can be found at Settings -> Key Vault in the /IOTCONNECT Web UI |
+| IOTC_SKEY | Your Solution Key                                                                                   |
+| IOTC_USER | Your /IOTCONNECT username (email)                                                                   |
+| IOTC_PASS | Your /IOTCONNECT password                                                                           |
 
 
 ### Special Environment Variables 
