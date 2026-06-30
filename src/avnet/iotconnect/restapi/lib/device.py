@@ -106,7 +106,9 @@ def query(query: Optional[DeviceQuery] = None) -> Page[Device]:
 
     :param query: Filter/paging options. Defaults to the first page, unfiltered.
     :return: A :class:`~.query.Page` of :class:`Device`. Iterate it for the current
-        page, or call ``.all()`` to walk every page transparently.
+        page, or call ``.all()`` to walk every page transparently. Unlike most list
+        endpoints, /Device does not report a total, so ``total_count`` is ``None`` and
+        ``has_next`` falls back to page fullness.
     """
     return run_query(apiurl.ep_device, '/Device', query or DeviceQuery(), Device)
 

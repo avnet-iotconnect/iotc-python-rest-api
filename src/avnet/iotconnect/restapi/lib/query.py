@@ -163,7 +163,7 @@ class Page(Generic[T]):
     items: list[T]
     page_number: int
     page_size: int
-    total_count: int
+    total_count: Optional[int]  # None when the endpoint does not report a count (e.g. /Device)
     # Closure that fetches another page by number; set by the list operation.
     _fetch: Optional[Callable[[int], 'Page[T]']] = field(default=None, repr=False)
 
@@ -174,13 +174,18 @@ class Page(Generic[T]):
         return len(self.items)
 
     @property
-    def total_pages(self) -> int:
+    def total_pages(self) -> Optional[int]:
+        if self.total_count is None:
+            return None  # unknown without a count
         if self.page_size <= 0:
             return 1
         return max(1, (self.total_count + self.page_size - 1) // self.page_size)
 
     @property
     def has_next(self) -> bool:
+        if self.total_count is None:
+            # no count to page by, so assume more only while pages come back full
+            return self.page_size > 0 and len(self.items) >= self.page_size
         return self.page_number < self.total_pages
 
     def all(self) -> Iterator[T]:
@@ -215,11 +220,15 @@ def run_query(
     def fetch(page_number: int) -> Page:
         q = replace(query, page=page_number)
         response = request(endpoint, path, params=q.to_params(), codes_ok=list(codes_ok))
+        # count is absent on some endpoints (e.g. /Device returns -1); treat anything
+        # not a real non-negative total as unknown so paging falls back to fullness.
+        count = response.body.get_object_value('count')
+        total_count = count if isinstance(count, int) and count >= 0 else None
         return Page(
             items=response.data.get(dc=dc),
             page_number=page_number,
             page_size=q.page_size,
-            total_count=response.body.get_object_value('count') or 0,
+            total_count=total_count,
             _fetch=fetch,
         )
 
