@@ -8,7 +8,7 @@ from typing import List, Optional
 
 from . import apiurl
 from .apirequest import request
-from .error import UsageError, SingleValueExpected
+from .error import UsageError, SingleValueExpected, ConflictResponseError
 
 
 @dataclass
@@ -28,6 +28,21 @@ class Entity:
     activeUserCount: Optional[int] = field(default=None)
     inActiveUserCount: Optional[int] = field(default=None)
     deviceCount: Optional[int] = field(default=None)
+
+
+@dataclass
+class EntityDetail:
+    """
+    Address fields from the by-GUID detail endpoint that the /Entity list model
+    (:class:`Entity`) does not carry. Tree/name/count fields are available from
+    :func:`query`; geo (state/country/timezone) is omitted as it is returned only
+    as opaque GUIDs.
+    """
+    guid: str
+    address: Optional[str] = field(default=None)
+    address2: Optional[str] = field(default=None)
+    city: Optional[str] = field(default=None)
+    zipCode: Optional[str] = field(default=None)
 
 
 def query() -> List[Entity]:
@@ -73,3 +88,14 @@ def get_root_entity() -> Entity:
     if len(roots) > 1:
         raise SingleValueExpected
     return roots[0]
+
+
+def get_detail_by_guid(guid: str) -> Optional[EntityDetail]:
+    """Address detail for an entity by GUID; None if it does not exist."""
+    if guid is None or len(guid) == 0:
+        raise UsageError('get_detail_by_guid: The entity guid argument is missing')
+    try:
+        response = request(apiurl.ep_user, f'/Entity/{guid}')
+        return response.data.get_one(dc=EntityDetail)
+    except ConflictResponseError:
+        return None
