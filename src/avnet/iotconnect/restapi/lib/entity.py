@@ -14,31 +14,19 @@ from .error import UsageError, SingleValueExpected, ConflictResponseError
 @dataclass
 class Entity:
     """
-    An entity (a node in the account's entity tree). Fields mirror the /Entity list
-    model; the root entity is the one whose ``parentEntityGuid`` is None.
+    An entity (a node in the account's entity tree). The root entity is the one whose
+    ``parentEntityGuid`` is None.
+
+    :func:`query` returns a summary with ``address*`` left None; the specific gets
+    (:func:`get_by_guid`, :func:`get_by_name`) return the full record with address.
     """
     guid: str
     name: str
     parentEntityGuid: Optional[str] = field(default=None)
-    parentName: Optional[str] = field(default=None)
-    description: Optional[str] = field(default=None)
     childEntityLabel: Optional[str] = field(default=None)
-    createdDate: Optional[str] = field(default=None)
-    updatedDate: Optional[str] = field(default=None)
-    activeUserCount: Optional[int] = field(default=None)
-    inActiveUserCount: Optional[int] = field(default=None)
-    deviceCount: Optional[int] = field(default=None)
+    description: Optional[str] = field(default=None)
 
-
-@dataclass
-class EntityDetail:
-    """
-    Address fields from the by-GUID detail endpoint that the /Entity list model
-    (:class:`Entity`) does not carry. Tree/name/count fields are available from
-    :func:`query`; geo (state/country/timezone) is omitted as it is returned only
-    as opaque GUIDs.
-    """
-    guid: str
+    # populated only by the specific (by-GUID) gets, not by the list
     address: Optional[str] = field(default=None)
     address2: Optional[str] = field(default=None)
     city: Optional[str] = field(default=None)
@@ -58,12 +46,24 @@ def query() -> List[Entity]:
     return response.data.get(dc=Entity)
 
 
+def get_by_guid(guid: str) -> Optional[Entity]:
+    """Lookup a single entity by GUID, returning the full record; None if not found."""
+    if guid is None or len(guid) == 0:
+        raise UsageError('get_by_guid: The entity guid argument is missing')
+    try:
+        response = request(apiurl.ep_user, f'/Entity/{guid}')
+        return response.data.get_one(dc=Entity)
+    except ConflictResponseError:
+        return None
+
+
 def get_by_name(name: str) -> Optional[Entity]:
     """
-    Lookup an entity by name.
+    Lookup an entity by name, returning the full record (address included).
 
-    Returns None if not found; raises if the name is ambiguous. The /Entity endpoint has
-    no name filter, so the match is done client-side over the full entity list.
+    The /Entity endpoint has no name filter, so the name is matched client-side over the
+    list and then re-fetched by GUID for the detail fields. Returns None if not found;
+    raises if the name is ambiguous.
     """
     if name is None or len(name) == 0:
         raise UsageError('get_by_name: The entity name argument is missing')
@@ -72,7 +72,7 @@ def get_by_name(name: str) -> Optional[Entity]:
         return None
     if len(matches) > 1:
         raise SingleValueExpected
-    return matches[0]
+    return get_by_guid(matches[0].guid)
 
 
 def get_root_entity() -> Entity:
@@ -88,14 +88,3 @@ def get_root_entity() -> Entity:
     if len(roots) > 1:
         raise SingleValueExpected
     return roots[0]
-
-
-def get_detail_by_guid(guid: str) -> Optional[EntityDetail]:
-    """Address detail for an entity by GUID; None if it does not exist."""
-    if guid is None or len(guid) == 0:
-        raise UsageError('get_detail_by_guid: The entity guid argument is missing')
-    try:
-        response = request(apiurl.ep_user, f'/Entity/{guid}')
-        return response.data.get_one(dc=EntityDetail)
-    except ConflictResponseError:
-        return None
