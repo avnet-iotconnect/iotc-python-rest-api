@@ -157,7 +157,7 @@ def create(
     :param duid: Device Unique ID.
     :param device_certificate: Device certificate as a PEM string or a path to the device PEM cert file. If not provided and CA Certificate auth type is not used an error will be raised.
     :param name: Name of the device. If not provided, DUID will be used.
-    :param is_ca_auth: Set this to true if template AT (auth type) is AT_CA_SIGNED.
+    :param is_ca_auth: Set this to true if template AT (auth type) is authtype.AT_CA_SIGNED.
     :param entity_guid: Entity under which the device will be created, given as its GUID or name. If not supplied, the account root entity will be used.
     """
     if template_guid is None:

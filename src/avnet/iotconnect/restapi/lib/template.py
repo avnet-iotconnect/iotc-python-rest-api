@@ -13,13 +13,6 @@ from .apirequest import request
 from .error import UsageError, ConflictResponseError, NotFoundResponseError
 from .query import Query, Page, api_param, run_query
 
-# Authentication types. See https://docs.iotconnect.io/iotconnect/sdk/message-protocol/device-message-2-1/reference-table/#authtypes
-AT_CA_SIGNED = 2
-AT_SELF_SIGNED = 3
-AT_TPM = 4
-AT_SYMMETRIC_KEY = 5
-AT_CA_INDIVIDUAL = 7
-
 
 @dataclass
 class Template:
@@ -129,7 +122,7 @@ class TemplateQuery(Query):
     name: Optional[str] = api_param(
         'DeviceTemplateName', description='Device template name', examples=['My Template'])
     auth_type: Optional[int] = api_param(
-        'AuthType', description='Authentication type (see AT_* constants)')
+        'AuthType', description='Authentication type (see authtype.AT_* constants)')
     message_version: Optional[str] = api_param(
         'MessageVersion', description='Template message version', examples=['2.1'])
     is_edge: Optional[bool] = api_param('EdgeSupport', description='Only edge templates')
