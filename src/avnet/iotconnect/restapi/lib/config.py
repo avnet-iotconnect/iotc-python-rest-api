@@ -158,11 +158,11 @@ def get_mqtt_client_id(duid: str) -> str:
     else:
         return f"{accesstoken.decode_access_token().user.cpId}-{duid}"
 
-def generate_device_json(duid: str, auth_type: int = 2) -> str:
+def generate_device_json(duid: str, auth_type: int = 3) -> str:
     """
     Generates a config json string that should be written to iotcDeviceConfig.json when running a python SDK
     :param duid: Device Uniqiue ID
-    :param auth_type: 2 for Self-signed. 1 for CA-Signed authentication.
+    :param auth_type: 3 for Self-signed. 2 for CA-Signed authentication.
     :return:
     """
     device_json = {
