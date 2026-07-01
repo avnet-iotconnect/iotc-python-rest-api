@@ -216,8 +216,5 @@ def generate_ec_cert_and_pkey(duid: str, validity_days: int = 3650, curve=ec.SEC
     return key_pem.decode('ascii'), cert_pem.decode('ascii')
 
 
-
-
-
 # automatically init when loading this module
 init()
