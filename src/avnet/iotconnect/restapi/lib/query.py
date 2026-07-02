@@ -38,6 +38,7 @@ from http import HTTPStatus
 from typing import Any, Callable, Generic, Iterator, Optional, TypeVar, Union
 
 from .apirequest import request
+from .error import UsageError
 
 T = TypeVar('T')
 
@@ -139,6 +140,11 @@ class Query(Params):
     sort_by: Optional[Union[str, Sort]] = None
 
     def to_params(self) -> dict[str, Any]:
+        # 1-based paging; the backend returns HTTP 500 on page < 1, so fail here instead.
+        if self.page < 1:
+            raise UsageError('page must be >= 1')
+        if self.page_size < 1:
+            raise UsageError('page_size must be >= 1')
         params = super().to_params()
         params['pageNumber'] = self.page
         params['pageSize'] = self.page_size
