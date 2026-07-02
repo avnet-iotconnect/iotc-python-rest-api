@@ -111,7 +111,8 @@ def query(query: Optional[DeviceQuery] = None) -> Page[Device]:
     :return: A :class:`~.query.Page` of :class:`Device`. Iterate it for the current
         page, or call ``.all()`` to walk every page transparently. Unlike most list
         endpoints, /Device does not report a total, so ``total_count`` is ``None`` and
-        ``has_next`` falls back to page fullness.
+        ``has_next`` falls back to page fullness. Note: ``displayName`` sort is not
+        supported by the backend (silently ignored)
     """
     return run_query(apiurl.ep_device, '/Device', query or DeviceQuery(), Device)
 
