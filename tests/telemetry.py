@@ -35,10 +35,10 @@ if DUID is None:
     sys.exit(-1)
 
 
-# --- current values (sensor snapshot) -------------------------------------
+# --- latest value per template attribute (sensor snapshot) ----------------
 
-values = telemetry.get_current_values(DUID)
-print('get_current_values count=', len(values))
+values = telemetry.get_latest_value(DUID)
+print('get_latest_value count=', len(values))
 assert isinstance(values, list)
 assert all(isinstance(v, DeviceSensorValue) for v in values)
 for v in values[:5]:

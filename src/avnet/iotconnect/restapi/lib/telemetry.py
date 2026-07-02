@@ -127,6 +127,7 @@ def get_recent(
 ) -> List[dict]:
     """
     Get the most recent data points for a single device's attributes.
+    The putput will contain all values - even the ones that don't exist in the template.
 
     :param duid: Device Unique ID.
     :param data_points: Number of recent data points to return. Must be between 10 and 50.
@@ -146,24 +147,28 @@ def get_recent(
         data["filterAttrs"] = filter_attrs
 
     response = request(apiurl.ep_telemetry, f'/Telemetry/device/{duid}/recent/{data_points}', json=data, codes_ok=[HTTPStatus.NO_CONTENT])
-    value = response.data.value
-    return value if isinstance(value, list) else []
+    # Response ``data`` is an object ({count, feed, version}); the records are under ``feed``.
+    raw = response.data.value
+    feed = raw.get('feed') if isinstance(raw, dict) else None
+    return feed or []
 
 
-def get_current_values(duid: str) -> List[DeviceSensorValue]:
+def get_latest_value(duid: str) -> List[DeviceSensorValue]:
     """
     Get the latest value of each of a device's attributes (its current sensor snapshot).
 
+    Template-mapped, latest single value received from the device one per template attribute.
+    Unmapped values are ignored.
     The underlying endpoint is keyed by device GUID, so the DUID is resolved to a GUID first.
 
     :param duid: Device Unique ID.
-    :return: A list of the device's attributes with their most recent values.
+    :return: One :class:`DeviceSensorValue` per template attribute, with its most recent value.
     """
     if duid is None:
-        raise UsageError('get_current_values: The device Unique ID (DUID) argument is missing')
+        raise UsageError('get_latest_value: The device Unique ID (DUID) argument is missing')
     dev = device.get_by_duid(duid)
     if dev is None:
-        raise NotFoundResponseError(f'get_current_values: Device with DUID "{duid}" not found')
+        raise NotFoundResponseError(f'get_latest_value: Device with DUID "{duid}" not found')
 
     response = request(apiurl.ep_telemetry, f'/Telemetry/device/{dev.guid}', codes_ok=[HTTPStatus.NO_CONTENT])
     items = response.data.value or []
