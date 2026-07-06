@@ -9,29 +9,41 @@ import sys
 from datetime import datetime, timedelta, timezone
 
 import avnet.iotconnect.restapi.lib.telemetry as telemetry
+from avnet.iotconnect.restapi.lib import device
 from avnet.iotconnect.restapi.lib.error import UsageError
 from avnet.iotconnect.restapi.lib.telemetry import TelemetryRecord, DeviceSensorValue, TelemetryQuery
 
 """
 Sanity checks for the telemetry read functions. These hit a live account, so a
-device (identified by IOTC_DUID or iotcDeviceConfig.json) must exist. The device
-need not be actively sending data - the calls should still succeed and simply
-return empty lists when there is no telemetry.
+device must exist. The device to use is resolved in this order: 
+- IOTC_TELEMETRY_DUID env var if present
+- Otherwise, so the test can run unattended - the most recently
+active device on the account (sorted by last communication). The device need not be
+actively sending data: the calls still succeed and simply return empty lists when
+there is no telemetry.
 """
 
-DUID = os.environ.get('IOTC_DUID')
+DUID = os.environ.get('IOTC_TELEMETRY_DUID')
 
-# try load duid from iotcDeviceConfig.json
-if DUID is None:
-    try:
-        with open('iotcDeviceConfig.json', 'r') as file:
-            device_data = json.load(file)
-            DUID = device_data.get('uid')
-    except RuntimeError:
-        pass
 
 if DUID is None:
-    print("Unable to determine DUID. Please provide iotcDeviceConfig.json")
+    page = device.query(device.DeviceQuery(
+        sort_by=f'{device.SORT_LAST_COMMUNICATION} desc', page_size=1)
+    )
+    top = next(iter(page), None)
+    if top is not None:
+        DUID = top.uniqueId
+        print(f"Auto-selected most recently active device: {DUID} (lastCommunication={top.lastCommunication})")
+        if top.lastCommunication:
+            try:
+                age = datetime.now(timezone.utc) - datetime.fromisoformat(top.lastCommunication.replace('Z', '+00:00'))
+                if age > timedelta(days=7):
+                    print(f"  NOTE: newest activity is ~{age.days}d old; history may return empty.")
+            except ValueError:
+                pass
+
+if DUID is None:
+    print("Unable to find a feasible DUID for test. Set IOTC_TELEMETRY_DUID, or ensure the account has a device.")
     sys.exit(-1)
 
 
