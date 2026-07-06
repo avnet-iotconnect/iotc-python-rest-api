@@ -15,6 +15,12 @@ from .apirequest import request
 from .error import UsageError, NotFoundResponseError, ConflictResponseError
 from .query import Query, Page, api_param, run_query
 
+# Sortable fields for DeviceQuery.sort_by (append a direction, e.g. "lastCommunication desc").
+# Only these are honored; other fields 412 and displayName is silently ignored.
+SORT_DUID = 'uniqueId'
+SORT_LAST_CONNECTION = 'lastConnection'        # last MQTT connect
+SORT_LAST_COMMUNICATION = 'lastCommunication'  # last message - best proxy for "last telemetry"
+
 
 @dataclass
 class Device:
@@ -27,6 +33,11 @@ class Device:
     isAcquired: Optional[int] = field(default=None)
     isEdgeSupport: Optional[bool] = field(default=None)
     isParentAcquired: Optional[bool] = field(default=None)
+
+    # Connectivity/recency from the list endpoint (None on single-get). ISO-8601 strings.
+    isConnected: Optional[bool] = field(default=None)
+    lastConnection: Optional[str] = field(default=None)
+    lastCommunication: Optional[str] = field(default=None)
 
 
 @dataclass
@@ -65,7 +76,7 @@ class Acquired(Enum):
 class DeviceQuery(Query):
     """
     Filter options for :func:`list`. All fields are optional; only the ones set are
-    sent to the server. Inherits pagination (``page``, ``page_size``, ``sort_by``)
+    sent to the server. Inherits pagination (page, page_size, sort_by)
     from :class:`~.query.Query`.
     """
     duid_contains: Optional[str] = api_param(
@@ -107,12 +118,14 @@ def query(query: Optional[DeviceQuery] = None) -> Page[Device]:
     """
     Query devices, with server-side filtering, sorting and pagination.
 
+    sort_by is a "field direction" string built from the SORT_* constants,
+    e.g. f'{device.SORT_LAST_COMMUNICATION} desc'.
+
     :param query: Filter/paging options. Defaults to the first page, unfiltered.
     :return: A :class:`~.query.Page` of :class:`Device`. Iterate it for the current
-        page, or call ``.all()`` to walk every page transparently. Unlike most list
-        endpoints, /Device does not report a total, so ``total_count`` is ``None`` and
-        ``has_next`` falls back to page fullness. Note: ``displayName`` sort is not
-        supported by the backend (silently ignored)
+        page, or call .all() to walk every page transparently. Unlike most list
+        endpoints, /Device does not report a total, so total_count is None and
+        has_next falls back to page fullness.
     """
     return run_query(apiurl.ep_device, '/Device', query or DeviceQuery(), Device)
 

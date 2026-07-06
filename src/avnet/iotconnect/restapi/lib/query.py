@@ -7,8 +7,8 @@ Shared building blocks for endpoint query options (filtering, sorting, paginatio
 and mutation inputs.
 
 The IoTConnect REST list endpoints expose strongly-typed query parameters plus a
-common pagination scheme (``pageNumber`` / ``pageSize`` / ``sortBy``), and their
-responses carry a sibling ``count`` next to ``data``. These helpers model that
+common pagination scheme (pageNumber / pageSize / sortBy), and their
+responses carry a sibling count next to data. These helpers model that
 uniformly:
 
 * :class:`Params` - a base dataclass whose :func:`api_param` fields serialize to
@@ -17,7 +17,7 @@ uniformly:
   expects.
 * :class:`Query` - :class:`Params` plus pagination and sorting.
 * :class:`Page` - the result wrapper returned by list operations: the current
-  page of items plus the total ``count``, with transparent auto-paging via
+  page of items plus the total count, with transparent auto-paging via
   :meth:`Page.all`.
 
 A field declares both its API name and (optionally) how a friendly value maps to
@@ -52,7 +52,7 @@ def api_param(
         default: Any = None,
 ):
     """
-    Declare a query/body field that maps to the API parameter ``name``.
+    Declare a query/body field that maps to the API parameter given by the name argument.
 
     :param name: The API parameter name this field serializes to (e.g. "UniqueId").
     :param resolver: Optional callable that converts a friendly value into the
@@ -78,7 +78,7 @@ _GUID_RE = re.compile(
 
 
 def is_guid(value: Any) -> bool:
-    """True if ``value`` looks like a GUID. Used by resolvers to skip lookups."""
+    """True if value looks like a GUID. Used by resolvers to skip lookups."""
     return isinstance(value, str) and bool(_GUID_RE.match(value.strip()))
 
 
@@ -124,7 +124,10 @@ class Order(Enum):
 
 @dataclass
 class Sort:
-    """Typed sort spec; serializes to the API's "field asc" / "field desc" form."""
+    """
+    Typed sort spec; serializes to the API's "field asc" / "field desc" form.
+    A direction is required by the backend, so this always emits one.
+    """
     field: str
     order: Order = Order.ASC
 
@@ -135,6 +138,8 @@ class Sort:
 @dataclass
 class Query(Params):
     """:class:`Params` plus the pagination/sort options common to every list endpoint."""
+    # sort_by: a "field direction" string (e.g. "uniqueId asc") or a Sort; direction
+    # is required. Endpoints expose their sortable fields as constants (e.g. device.SORT_*).
     page: int = 1
     page_size: int = 100
     sort_by: Optional[Union[str, Sort]] = None
@@ -159,7 +164,7 @@ class Page(Generic[T]):
     A single page of list results plus the total count, with transparent auto-paging.
 
     Iterate the wrapper directly to walk the current page, or :meth:`all` to walk
-    every page without doing ``pageNumber`` arithmetic::
+    every page without doing pageNumber arithmetic::
 
         page = device.query(DeviceQuery(status=DeviceStatus.ACTIVE))
         print(f"{page.total_count} active devices")
@@ -213,14 +218,14 @@ def run_query(
         codes_ok=(HTTPStatus.NO_CONTENT,),
 ) -> Page:
     """
-    Execute a paginated list query and return a :class:`Page` of ``dc`` instances.
+    Execute a paginated list query and return a :class:`Page` of dc instances.
 
-    Serializes ``query`` to API parameters, GETs ``endpoint + path``, maps the
-    response ``data`` to ``dc``, and reads the envelope ``count`` for pagination.
-    The returned page auto-pages via :meth:`Page.all`. ``HTTP 204`` is accepted by
+    Serializes query to API parameters, GETs endpoint + path, maps the
+    response data to dc, and reads the envelope count for pagination.
+    The returned page auto-pages via :meth:`Page.all`. HTTP 204 is accepted by
     default so an empty list comes back cleanly.
 
-    This is the single place list endpoints are wired up, so every ``*.query()``
+    This is the single place list endpoints are wired up, so every *.query()
     behaves identically.
     """
     def fetch(page_number: int) -> Page:
