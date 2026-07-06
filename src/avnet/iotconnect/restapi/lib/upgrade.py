@@ -28,14 +28,17 @@ class Url:
 class Upgrade:
     guid: str
     software: str  # software version
-    description: str
     isDraft: str
 
     # metadata:
     createdDate: str  # ISO string
-    createdBy: str  # User GUID
     updatedDate: str  # ISO string
-    updatedBy: str  # User GUID
+
+    # Optional: the /firmware-upgrade list projection omits these (the nested and
+    # single-get shapes include them). The list's lowercase 'createdby' maps via alias.
+    description: str = field(default=None)
+    createdBy: str = field(default=None, metadata={'aliases': ['createdby']})  # User GUID
+    updatedBy: str = field(default=None)  # User GUID
 
 
     urls: List[Url] = field(default=None)
@@ -102,7 +105,7 @@ def _resolve_firmware(value: str) -> str:
 class UpgradeQuery(Query):
     """
     Filter options for :func:`list`. All fields optional; only the ones set are sent.
-    Inherits pagination (``page``/``page_size``/``sort_by``) from :class:`~.query.Query`.
+    Inherits pagination (page/page_size/sort_by) from :class:`~.query.Query`.
     """
     firmware: Optional[str] = api_param(
         'firmwareguid', resolver=_resolve_firmware,
