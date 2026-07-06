@@ -78,12 +78,12 @@ class UploadResult:
     guid: str
 
 
-def _validate_version(version: str, what: str):
+def _validate_version(what: str, version: str):
     if version is None:
         raise UsageError(f'"{what}" parameter must not be None')
     elif len(version) > 20 or len(version) == 0:
         raise UsageError(f'"{what}" parameter must be between 1 and 20 characters')
-    elif all(x.isalnum() for x in version.split('.')):
+    elif not all(x.isalnum() for x in version.split('.')):
         raise UsageError(f'"{what}" parameter must contain only alphanumeric characters or periods')
 
 
