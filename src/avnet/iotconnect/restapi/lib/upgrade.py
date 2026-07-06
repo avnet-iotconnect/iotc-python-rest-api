@@ -108,7 +108,9 @@ class UpgradeQuery(Query):
         'firmwareguid', resolver=_resolve_firmware,
         description='Filter by firmware, given as its name or GUID')
     type: Optional[str] = api_param(
-        'type', description='Upgrade type: "Released", "Draft", or "both" (TYPE_* constants)')
+        'type', default=TYPE_BOTH,
+        description='Upgrade type: "Released", "Draft", or "both" (TYPE_* constants). '
+                    'Required by the API; defaults to "both".')
     search: Optional[str] = api_param('searchText', description='Free-text search')
 
 
