@@ -45,11 +45,12 @@ FILE_MODULE_TYPES = (
 @dataclass
 class File:
     guid: str
-    file: str
+    file: str # signed https URL - valid for limited time
     name: str
     tag: str = field(default=None)
     createdDate: str = field(default=None)
     state: str = field(default=None)
+    key: str = field(default=None) # the path in S3 bucket
 
 @dataclass
 class FileLookupResult:
