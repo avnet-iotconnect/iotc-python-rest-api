@@ -23,6 +23,7 @@ jobs:
 
       # only check if package will build correctly
       - name: Package Install
+        shell: bash
         run: scripts/package.sh
 
       # local install prep for next steps
@@ -54,6 +55,7 @@ jobs:
           
 
       - name: ${{ matrix.platform.name }} Run Tests
+        shell: bash
         env:
           IOTC_API_TRACE: 1
         run: |
