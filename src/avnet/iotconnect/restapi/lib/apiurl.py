@@ -2,6 +2,7 @@
 # Copyright (C) 2025 Avnet
 # Authors: Nikola Markovic <nikola.markovic@avnet.com> et al.
 import json
+import time
 from http import HTTPMethod
 
 import requests
@@ -32,16 +33,30 @@ def configure_using_discovery():
         return
     version = '2.1' if config.pf == 'aws' else '2'
     from . import config
-    # do a low level request here without using request local module in order to avoid circular dependencies
-    response = requests.request(method=HTTPMethod.GET, url=f'https://discovery.iotconnect.io/api/uisdk/solutionkey/{config.skey}/env/{config.env}', params={'version': version, 'pf':config.pf}, headers={})
-    if config.api_trace_enabled:
-        print(f"GET https://discovery.iotconnect.io/api/uisdk/solutionkey/{config.skey}/env/{config.env} params: 'version': {version}, 'pf':{config.pf}")
-        print(f"Response JSON: {response.json()}")
+    url = f'https://discovery.iotconnect.io/api/uisdk/solutionkey/{config.skey}/env/{config.env}'
+    params = {'version': version, 'pf': config.pf}
 
-    if response.status_code != 200:
-        raise ConfigError(f'Unable to resolve API URLS for platform={config.pf} env={config.env} SKEY={config.skey}. Response code {response.status_code}, body: {response.text}')
+    # Discovery intermittently fails on the back end (e.g. a 502 with an HTML body),
+    # so retry a few times with a short backoff before giving up.
+    d = None
+    for attempt in range(8):
+        # do a low level request here without using request local module in order to avoid circular dependencies
+        response = requests.request(method=HTTPMethod.GET, url=url, params=params, headers={})
+        if config.api_trace_enabled:
+            print(f"GET {url} params: 'version': {version}, 'pf':{config.pf}")
+            print(f"Response {response.status_code}: {response.text}")
 
-    d = response.json().get('data')
+        try:
+            if response.status_code != 200:
+                raise ConfigError(f'Unable to resolve API URLS for platform={config.pf} env={config.env} SKEY={config.skey}. Response code {response.status_code}, body: {response.text}')
+            d = response.json().get('data')
+            break
+        except (ConfigError, requests.exceptions.JSONDecodeError) as e:
+            if attempt == 7:
+                if isinstance(e, ConfigError):
+                    raise
+                raise ConfigError(f'Unable to resolve API URLS for platform={config.pf} env={config.env} SKEY={config.skey}. Response body: {response.text}')
+            time.sleep(min(0.25 * 2 ** attempt, 2.0))
 
     if d is None:
         error_message = f"There was an issue while performing discovery for platform:{config.pf} env:{config.env} version:{version} skey:{config.skey}"
