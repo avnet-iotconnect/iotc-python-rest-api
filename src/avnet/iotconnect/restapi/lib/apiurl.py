@@ -39,6 +39,7 @@ def configure_using_discovery():
     # Discovery intermittently fails on the back end (e.g. a 502 with an HTML body),
     # so retry a few times with a short backoff before giving up.
     d = None
+    response = None
     for attempt in range(8):
         # do a low level request here without using request local module in order to avoid circular dependencies
         response = requests.request(method=HTTPMethod.GET, url=url, params=params, headers={})
