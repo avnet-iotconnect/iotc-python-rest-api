@@ -160,14 +160,14 @@ sorting and pagination all happen server-side — only the fields you set are se
 
 ```python
 from avnet.iotconnect.restapi.lib import device
-from avnet.iotconnect.restapi.lib.device import DeviceQuery, DeviceStatus
+from avnet.iotconnect.restapi.lib.device import DeviceQuery, DeviceStatus 
 from avnet.iotconnect.restapi.lib.query import Sort, Order
 
 # Each field is a documented, typed filter. Enums constrain values that the API fixes.
 page = device.query(DeviceQuery(
     status=DeviceStatus.ACTIVE,
     template="mytmpl01",                 # template code OR GUID - resolved for you
-    sort_by=Sort("uniqueId", Order.ASC),
+    sort_by=Sort(device.SORT_DUID, Order.ASC), # or even as plain string f"{device.SORT_DUID} {Order.ASC}"
     page_size=50,
 ))
 
