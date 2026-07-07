@@ -32,7 +32,7 @@ def run_sdk_send_receive_command(device_guid: str, command_guid: str):
     def on_command(msg: C2dCommand):
         global command_received
         print("Received command", msg.command_name, msg.command_args, msg.ack_id)
-        if msg.command_name == "sample_command":
+        if msg.command_name == "sample-command":
             c.send_command_ack(msg, C2dAck.CMD_SUCCESS_WITH_ACK, "Command received")
             command_received = True
         else:
@@ -131,7 +131,7 @@ with open('iotcDeviceConfig.json', 'w') as f:
 print('commands[0] (get_by_template_code)', template.get_by_template_code(TEMPLATE_CODE).commands[0])
 print('commands[0] (get_by_guid)', template.get_by_guid(template_guid).commands[0])
 print('commands from command api (get_all)', command.get_all(template_guid)[0])
-sample_command = command.get_with_name(template_guid, 'sample_command')
+sample_command = command.get_with_name(template_guid, 'sample-command')
 print(sample_command)
 
 # run the SDK and have it send this command once and wait for it to come back to the SDK client.

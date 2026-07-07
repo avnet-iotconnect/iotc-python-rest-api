@@ -2,37 +2,89 @@
 # Copyright (C) 2025 Avnet
 # Authors: Nikola Markovic <nikola.markovic@avnet.com> et al.
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from http import HTTPStatus
+from typing import List, Optional
 
 from . import apiurl
 from .apirequest import request
-from .error import UsageError
+from .error import UsageError, SingleValueExpected, ConflictResponseError
 
 
 @dataclass
 class Entity:
+    """
+    An entity (a node in the account's entity tree). The root entity is the one whose
+    ``parentEntityGuid`` is None.
+
+    :func:`query` returns a summary with ``address*`` left None; the specific gets
+    (:func:`get_by_guid`, :func:`get_by_name`) return the full record with address.
+    """
     guid: str
     name: str
-    parentEntityGuid: str
+    parentEntityGuid: Optional[str] = field(default=None)
+    childEntityLabel: Optional[str] = field(default=None)
+    description: Optional[str] = field(default=None)
+
+    # populated only by the specific (by-GUID) gets, not by the list
+    address: Optional[str] = field(default=None)
+    address2: Optional[str] = field(default=None)
+    city: Optional[str] = field(default=None)
+    zipCode: Optional[str] = field(default=None)
 
 
-def query(query_str: str = '[*]') -> list[Entity]:
-    response = request(apiurl.ep_user, "/Entity/lookup")
-    return response.data.get(query_str, dc=Entity)
+def query() -> List[Entity]:
+    """
+    Query all entities.
+
+    Unlike the other endpoints, the /Entity endpoint exposes no query parameters in the
+    API (no filtering, sorting or pagination), so it returns the full set in a single
+    response and this function returns a plain list rather than a Page. Filter in Python,
+    e.g. ``[e for e in entity.query() if e.parentEntityGuid is None]``.
+    """
+    response = request(apiurl.ep_user, '/Entity', codes_ok=[HTTPStatus.NO_CONTENT])
+    return response.data.get(dc=Entity)
 
 
-def query_expect_one(query_str: str = '[*]') -> Entity:
-    response = request(apiurl.ep_user, '/Entity/lookup')
-    return response.data.get_one(query_str, dc=Entity)
+def get_by_guid(guid: str) -> Optional[Entity]:
+    """Lookup a single entity by GUID, returning the full record; None if not found."""
+    if guid is None or len(guid) == 0:
+        raise UsageError('get_by_guid: The entity guid argument is missing')
+    try:
+        response = request(apiurl.ep_user, f'/Entity/{guid}')
+        return response.data.get_one(dc=Entity)
+    except ConflictResponseError:
+        return None
 
 
-def get_by_name(name) -> Entity:
-    """Lookup an entity by name"""
-    if name is None:
+def get_by_name(name: str) -> Optional[Entity]:
+    """
+    Lookup an entity by name, returning the full record (address included).
+
+    The /Entity endpoint has no name filter, so the name is matched client-side over the
+    list and then re-fetched by GUID for the detail fields. Returns None if not found;
+    raises if the name is ambiguous.
+    """
+    if name is None or len(name) == 0:
         raise UsageError('get_by_name: The entity name argument is missing')
-    return query_expect_one(f"[?name==`{name}`]")
+    matches = [e for e in query() if e.name == name]
+    if len(matches) == 0:
+        return None
+    if len(matches) > 1:
+        raise SingleValueExpected
+    return get_by_guid(matches[0].guid)
 
 
 def get_root_entity() -> Entity:
-    """Find root entity for the account"""
-    return query_expect_one('[?parentEntityGuid == null]')
+    """
+    Find the account's root entity: the single entity that has no parent.
+
+    The /Entity endpoint has no filter for this, so it is derived client-side from the
+    full entity list (the one with ``parentEntityGuid`` None).
+    """
+    roots = [e for e in query() if e.parentEntityGuid is None]
+    if len(roots) == 0:
+        raise UsageError('get_root_entity: No root entity found for this account')
+    if len(roots) > 1:
+        raise SingleValueExpected
+    return roots[0]

@@ -5,11 +5,12 @@
 import os
 from dataclasses import dataclass, field
 from http import HTTPMethod
-from typing import Optional, Dict, List
+from typing import Optional, List
 
 from . import apiurl, credentials, util, entity
 from .apirequest import request, Headers
 from .error import UsageError, NotFoundResponseError
+from .query import Query, Page, api_param, run_query, is_guid
 
 # use these types as "type" query parameter when querying firmwares
 TYPE_RELEASED = "Released"
@@ -27,14 +28,17 @@ class Url:
 class Upgrade:
     guid: str
     software: str  # software version
-    description: str
     isDraft: str
 
     # metadata:
     createdDate: str  # ISO string
-    createdBy: str  # User GUID
     updatedDate: str  # ISO string
-    updatedBy: str  # User GUID
+
+    # Optional: the /firmware-upgrade list projection omits these (the nested and
+    # single-get shapes include them). The list's lowercase 'createdby' maps via alias.
+    description: str = field(default=None)
+    createdBy: str = field(default=None, metadata={'aliases': ['createdby']})  # User GUID
+    updatedBy: str = field(default=None)  # User GUID
 
 
     urls: List[Url] = field(default=None)
@@ -77,18 +81,50 @@ class UploadResult:
     guid: str
 
 
-def _validate_version(version: str, what: str):
+def _validate_version(what: str, version: str):
     if version is None:
         raise UsageError(f'"{what}" parameter must not be None')
     elif len(version) > 20 or len(version) == 0:
         raise UsageError(f'"{what}" parameter must be between 1 and 20 characters')
-    elif all(x.isalnum() for x in version.split('.')):
+    elif not all(x.isalnum() for x in version.split('.')):
         raise UsageError(f'"{what}" parameter must contain only alphanumeric characters or periods')
 
 
-def query(query_str: str = '[*]', params: Optional[Dict[str, any]] = None) -> list[Upgrade]:
-    response = request(apiurl.ep_firmware, '/firmware-upgrade')
-    return response.data.get(query_str=query_str, params=params, dc=Upgrade)
+def _resolve_firmware(value: str) -> str:
+    """Accept a firmware GUID or firmware name; return the GUID."""
+    if is_guid(value):
+        return value
+    from . import firmware  # lazy: firmware imports upgrade, so import here to avoid a cycle
+    fw = firmware.get_by_name(value)
+    if fw is None:
+        raise UsageError(f'No firmware found with name "{value}"')
+    return fw.guid
+
+
+@dataclass
+class UpgradeQuery(Query):
+    """
+    Filter options for :func:`list`. All fields optional; only the ones set are sent.
+    Inherits pagination (page/page_size/sort_by) from :class:`~.query.Query`.
+    """
+    firmware: Optional[str] = api_param(
+        'firmwareguid', resolver=_resolve_firmware,
+        description='Filter by firmware, given as its name or GUID')
+    type: Optional[str] = api_param(
+        'type', default=TYPE_BOTH,
+        description='Upgrade type: "Released", "Draft", or "both" (TYPE_* constants). '
+                    'Required by the API; defaults to "both".')
+    search: Optional[str] = api_param('searchText', description='Free-text search')
+
+
+def query(query: Optional[UpgradeQuery] = None) -> Page[Upgrade]:
+    """
+    Query firmware upgrades, with server-side filtering, sorting and pagination.
+
+    :param query: Filter/paging options. Defaults to the first page, unfiltered.
+    :return: A :class:`~.query.Page` of :class:`Upgrade`.
+    """
+    return run_query(apiurl.ep_firmware, '/firmware-upgrade', query or UpgradeQuery(), Upgrade)
 
 
 def get_by_guid(guid: str) -> Optional[Upgrade]:

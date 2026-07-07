@@ -8,8 +8,13 @@ import hashlib
 from dataclasses import Field, fields
 from dataclasses import is_dataclass
 from datetime import datetime, timezone
-from typing import TypeVar, Protocol, ClassVar, Any, Type
+from typing import Optional, TypeVar, Protocol, ClassVar, Any, Type
 from typing import Union, get_type_hints
+
+from .error import UsageError
+
+# The IoTConnect REST API expects UTC timestamps formatted as "YYYY-MM-DD HH:mm:ss".
+API_DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S"
 
 
 # Credit: "intgr" at stackoverflow example https://stackoverflow.com/questions/61736151/how-to-make-a-typevar-generic-type-in-python-with-dataclass-constraint
@@ -24,10 +29,81 @@ def generate_unique_timestamp_string():
     return datetime.now(timezone.utc).strftime("%y%m%d.%H%M%S.%f")[:-3]  # Milliseconds precision with 3 most significant digits
 
 
+def to_api_datetime(value: datetime) -> str:
+    """
+    Convert a datetime into the UTC string the REST API expects (see API_DATETIME_FORMAT).
+
+    Naive datetimes are assumed to already be UTC; timezone-aware datetimes are converted to UTC.
+    """
+    if not isinstance(value, datetime):
+        raise UsageError('A datetime instance is required for API time arguments')
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=timezone.utc)
+    return value.astimezone(timezone.utc).strftime(API_DATETIME_FORMAT)
+
+
+def parse_iso_datetime(value: Optional[str]) -> datetime:
+    """
+    Leniently parse an ISO-8601 timestamp (e.g. "2026-06-24T17:23:59.590Z") into a datetime.
+
+    Intended for sorting: unparseable or missing values return the minimum (UTC) datetime so they
+    sort oldest rather than raising.
+    """
+    if not value:
+        return datetime.min.replace(tzinfo=timezone.utc)
+    try:
+        return datetime.fromisoformat(value.replace('Z', '+00:00'))
+    except ValueError:
+        return datetime.min.replace(tzinfo=timezone.utc)
+
+
+def coerce_datetime(value: Union[datetime, str]) -> datetime:
+    """
+    Accept a native ``datetime`` or an ISO-8601 string and return a timezone-aware datetime.
+
+    Lets time-bound query options take either a Python ``datetime`` or a string for
+    convenience. Strings are parsed leniently (a trailing "Z" is accepted); naive
+    datetimes are assumed to be UTC. Raises :class:`UsageError` on an unparseable value.
+    """
+    if isinstance(value, datetime):
+        dt = value
+    elif isinstance(value, str):
+        try:
+            dt = datetime.fromisoformat(value.replace('Z', '+00:00'))
+        except ValueError:
+            raise UsageError(f'Could not parse "{value}" as an ISO-8601 datetime')
+    else:
+        raise UsageError('A time value must be a datetime or an ISO-8601 string')
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt
+
+
 def filter_dict_to_dataclass_fields(item: dict, dc: Type[T]) -> dict:
-    """Filter a dictionary to include only fields defined in the dataclass."""
-    valid_fields = {f.name for f in fields(dc)}
-    return {k: v for k, v in item.items() if k in valid_fields}
+    """
+    Filter a dictionary to include only fields defined in the dataclass.
+
+    A field may declare alternate incoming JSON key names via its metadata, e.g.
+    ``field(metadata={'aliases': ['code']})``. This accommodates endpoints that
+    return the same concept under different keys (e.g. the template list endpoint
+    returns ``code``/``name`` while the single-get endpoints return
+    ``templateCode``/``templateName``). The canonical key, when present, wins over
+    any alias.
+    """
+    valid_fields = set()
+    alias_map = {}  # incoming alias key -> canonical field name
+    for f in fields(dc):
+        valid_fields.add(f.name)
+        for alias in f.metadata.get('aliases', ()):
+            alias_map[alias] = f.name
+
+    result = {}
+    for k, v in item.items():
+        if k in valid_fields:
+            result[k] = v
+        elif k in alias_map and alias_map[k] not in item:
+            result[alias_map[k]] = v
+    return result
 
 def normalize_keys(item: dict) -> dict:
     """Replace dashes with underscores in dictionary keys to match dataclass field names."""

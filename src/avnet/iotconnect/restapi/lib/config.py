@@ -16,7 +16,7 @@ from cryptography.hazmat.primitives import serialization, hashes
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.x509.oid import NameOID
 
-from . import apiurl, accesstoken
+from . import apiurl, accesstoken, authtype
 
 # Environment constants
 PF_AZ = "az"
@@ -158,11 +158,11 @@ def get_mqtt_client_id(duid: str) -> str:
     else:
         return f"{accesstoken.decode_access_token().user.cpId}-{duid}"
 
-def generate_device_json(duid: str, auth_type: int = 2) -> str:
+def generate_device_json(duid: str, auth_type: int = authtype.AT_SELF_SIGNED) -> str:
     """
     Generates a config json string that should be written to iotcDeviceConfig.json when running a python SDK
     :param duid: Device Uniqiue ID
-    :param auth_type: 2 for Self-signed. 1 for CA-Signed authentication.
+    :param auth_type: an authtype.AT_* value, e.g. AT_SELF_SIGNED (3) or AT_CA_SIGNED (2).
     :return:
     """
     device_json = {
@@ -214,9 +214,6 @@ def generate_ec_cert_and_pkey(duid: str, validity_days: int = 3650, curve=ec.SEC
     )
 
     return key_pem.decode('ascii'), cert_pem.decode('ascii')
-
-
-
 
 
 # automatically init when loading this module

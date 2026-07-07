@@ -6,7 +6,7 @@
         {
             "name": "version",
             "type": "STRING",
-            "description": "",
+            "description": "Software version",
             "unit": "",
             "aggregateTypes": []
         },
@@ -20,8 +20,15 @@
         {
             "name": "random",
             "type": "DECIMAL",
-            "description": "",
+            "description": "A randomly generated number by the device with each telemetry packet",
             "unit": "",
+            "aggregateTypes": []
+        },
+        {
+            "name": "temperature",
+            "type": "DECIMAL",
+            "description": "Ambient temperature measured on the device",
+            "unit": "celsius",
             "aggregateTypes": []
         }
     ],
@@ -39,7 +46,7 @@
     "greenGrass": "0",
     "wireless": "0",
     "properties": {
-        "description": "IoTConnect Python API sample device template",
+        "description": "/IOTCONNECT Python API sample device template",
         "dataFrequency": "60",
         "fileSupport": false
     },

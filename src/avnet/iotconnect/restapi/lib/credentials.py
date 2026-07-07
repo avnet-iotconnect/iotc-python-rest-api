@@ -8,7 +8,7 @@ import os
 
 from . import apiurl, config
 from .apirequest import Headers, request
-from .error import UsageError, AuthError
+from .error import UsageError
 
 
 def _ts_now():
@@ -19,10 +19,10 @@ def check() -> None:
     if config.access_token is None:
         raise UsageError("No access token configured. Please configure the API.")
     else:
-        if config.token_expiry < _ts_now():
-            raise AuthError("Token expired")
-        if should_refresh():
-            # It's been longer than an hour since we refreshed the token. We should refresh it now.
+        # Renew if the access token has expired, or proactively once past the refresh
+        # window. refresh() records the new tokens in RAM (and on disk); if the refresh
+        # token itself is rejected it raises, and only then do we give up.
+        if config.token_expiry < _ts_now() or should_refresh():
             refresh()
 
 
@@ -92,5 +92,5 @@ def _get_basic_token() -> str:
         Headers.N_ACCEPT: Headers.V_APP_JSON
     }
     response = request(apiurl.ep_auth, "/Auth/basic-token", headers=headers)
-    basic_token = response.body.get("data")
+    basic_token = response.body.get_object_value("data")
     return basic_token

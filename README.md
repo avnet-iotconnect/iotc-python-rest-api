@@ -152,18 +152,66 @@ iotconnect-cli delete-template apidemo-device01
 To learn how to use the API, is suggested to start with the [examples/basic-api-example.py](examples/basic-api-example.py),
 and then get familiar with the [unit tests](./tests).
 
+#### Programmatic Querying, Filtering and Pagination
+
+List endpoints follow one consistent pattern: each module exposes a `query()` function
+that takes a typed, per-endpoint query object and returns a `Page` of results. Filtering,
+sorting and pagination all happen server-side — only the fields you set are sent.
+
+```python
+from avnet.iotconnect.restapi.lib import device
+from avnet.iotconnect.restapi.lib.device import DeviceQuery, DeviceStatus 
+from avnet.iotconnect.restapi.lib.query import Sort, Order
+
+# Each field is a documented, typed filter. Enums constrain values that the API fixes.
+page = device.query(DeviceQuery(
+    status=DeviceStatus.ACTIVE,
+    template="mytmpl01",                 # template code OR GUID - resolved for you
+    sort_by=Sort(device.SORT_DUID, Order.ASC), # or even as plain string f"{device.SORT_DUID} {Order.ASC}"
+    page_size=50,
+))
+
+print("total matching devices:", page.total_count)   # server-reported total
+for d in page:                                        # iterate the current page
+    print(d.uniqueId, d.isActive)
+
+for d in page.all():                                  # ...or walk every page transparently
+    print(d.uniqueId)
+```
+
+Fields that reference another object (a template, an entity, a firmware) accept either a
+GUID **or** a friendly identifier (template code, entity name, firmware name) and resolve it
+to the GUID automatically — so you rarely need to look up GUIDs yourself. The same `*Query`
+objects exist for templates, firmware, firmware upgrades and users
+(`TemplateQuery`, `FirmwareQuery`, `UpgradeQuery`, `UserQuery`).
+
+`entity.query()` is the exception: the /Entity endpoint exposes no filter or pagination
+parameters in the API, so it takes no query object and returns a plain list of all
+entities (filter it in Python).
+
+Time-bound queries accept native Python types. Telemetry history, for example, takes a
+`datetime`, an ISO-8601 string, or a `timedelta` (a duration back from `to_time`):
+
+```python
+from datetime import timedelta
+from avnet.iotconnect.restapi.lib import telemetry
+from avnet.iotconnect.restapi.lib.telemetry import TelemetryQuery
+
+records = telemetry.get_history(TelemetryQuery("my-device-01", from_time=timedelta(minutes=5)))
+```
+
 
 ### Configuration Environment Variables
 
 These variables can be used to store your credentials permanently:
 
-| Name      | Description                                                                                       |
-|-----------|---------------------------------------------------------------------------------------------------|
-| IOTC_PF   | Platform of your /IOTCONNECT account "aws" for AWS and "az" for Azure                              |
-| IOTC_ENV  | Environment IoTconnect account. It can be found at Settings -> Key Vault in the /IOTCONNECT Web UI |
-| IOTC_SKEY | Your Solution Key                                                                                 |
-| IOTC_USER | Your IoTconnect username (email)                                                                  |
-| IOTC_PASS | Your IoTconnect password                                                                          |
+| Name      | Description                                                                                         |
+|-----------|-----------------------------------------------------------------------------------------------------|
+| IOTC_PF   | Platform of your /IOTCONNECT account "aws" for AWS and "az" for Azure                               |
+| IOTC_ENV  | Environment /IOTCONNECT account. It can be found at Settings -> Key Vault in the /IOTCONNECT Web UI |
+| IOTC_SKEY | Your Solution Key                                                                                   |
+| IOTC_USER | Your /IOTCONNECT username (email)                                                                   |
+| IOTC_PASS | Your /IOTCONNECT password                                                                           |
 
 
 ### Special Environment Variables 

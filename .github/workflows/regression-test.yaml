@@ -12,17 +12,18 @@ jobs:
         python-version: ["3.11", "3.12", "3.13"]
         platform:
           - { name: "aws", env: "poc" }
-          - { name: "az", env: "avnet" }
+          #  - { name: "az", env: "avnet" } #  azure not szupported due to issues
       max-parallel: 1  # Forces sequential execution of all matrix combinations because of resource collisions
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
 
       # only check if package will build correctly
       - name: Package Install
+        shell: bash
         run: scripts/package.sh
 
       # local install prep for next steps
@@ -54,6 +55,7 @@ jobs:
           
 
       - name: ${{ matrix.platform.name }} Run Tests
+        shell: bash
         env:
           IOTC_API_TRACE: 1
         run: |

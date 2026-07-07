@@ -1,12 +1,12 @@
 {
-    "code": "test1234",
-    "name": "test1234",
+    "code": "apisample",
+    "name": "Python REST Api Sample",
     "authType": 2,
     "attributes": [
         {
             "name": "version",
             "type": "STRING",
-            "description": "",
+            "description": "Software version",
             "unit": "",
             "aggregateTypes": []
         },
@@ -19,16 +19,23 @@
         },
         {
             "name": "random",
-            "type": "STRING",
-            "description": "",
+            "type": "DECIMAL",
+            "description": "A randomly generated number by the device with each telemetry packet",
             "unit": "",
+            "aggregateTypes": []
+        },
+        {
+            "name": "temperature",
+            "type": "DECIMAL",
+            "description": "Ambient temperature measured on the device",
+            "unit": "celsius",
             "aggregateTypes": []
         }
     ],
     "commands": [
         {
-            "name": "sample_command",
-            "command": "sample_command",
+            "name": "sample-command",
+            "command": "sample-command",
             "requiredParam": true,
             "requiredAck": true,
             "isOTACommand": false
@@ -39,7 +46,7 @@
     "greenGrass": "0",
     "wireless": "0",
     "properties": {
-        "description": null,
+        "description": "Python API sample device template",
         "dataFrequency": "60",
         "fileSupport": false
     },

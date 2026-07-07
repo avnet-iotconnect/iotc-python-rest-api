@@ -3,12 +3,14 @@
 # Authors: Nikola Markovic <nikola.markovic@avnet.com> et al.
 
 import argparse
+import dataclasses
+import json
 import os
 import sys
 
 import avnet.iotconnect.restapi.lib.apiurl as apiurl
 import avnet.iotconnect.restapi.lib.credentials as credentials
-from avnet.iotconnect.restapi.lib import config, template, device, entity, util
+from avnet.iotconnect.restapi.lib import config, template, device, entity, telemetry, util
 from avnet.iotconnect.restapi.lib.error import ApiException, ConflictResponseError
 
 
@@ -258,6 +260,49 @@ def init():
 
         print(f'Device config JSON written to "{a.file}".')
 
+    #######################
+
+    def _parse_duid_list(raw: str) -> list:
+        """Split a comma-separated DUID argument into a clean list."""
+        return [d.strip() for d in raw.split(",") if d.strip()]
+
+    def _register_telemetry(ap: argparse.ArgumentParser) -> None:
+        description = \
+            """
+            Telemetry related commands. Use one of the telemetry subcommands.
+            """
+        ap.description = description
+        # Nested subcommands leave room to grow (e.g. recent, current, export) without
+        # crowding the top-level command list.
+        tsub = ap.add_subparsers(title="telemetry commands", dest="telemetry_command")
+        tsub.required = True
+
+        latest = tsub.add_parser('latest')
+        latest.description = \
+            """
+            Fetch the most recent page of telemetry for one or more devices and print it as JSON.
+            Each record includes its device DUID and device GUID. No time range is applied yet;
+            this returns the latest available page per device.
+            """
+        latest.add_argument(
+            dest="duids",
+            help="One or more device DUIDs, comma-separated. Eg. duid1,duid2,duid3"
+        )
+        latest.set_defaults(func=_process_telemetry_latest)
+
+    def _process_telemetry_latest(a: argparse.Namespace) -> None:
+        duids = _parse_duid_list(a.duids)
+        if len(duids) == 0:
+            print("At least one DUID must be provided.")
+            sys.exit(1)
+        records = telemetry.get_history(telemetry.TelemetryQuery(duids=duids))
+        # One entry per line. Device GUID is omitted from CLI output (it is for lib access);
+        # dTime is already GMT/UTC, so there is no separate timezone field.
+        for r in records:
+            entry = dataclasses.asdict(r)
+            entry.pop('deviceGuid', None)
+            print(json.dumps(entry))
+
     #####################################################
 
     main_description = \
@@ -296,6 +341,8 @@ def init():
     subparser = subparsers.add_parser('generate-device-json')
     subparser.set_defaults(func=_process_generate_device_json)
     _register_generate_device_json(subparser)
+    subparser = subparsers.add_parser('telemetry')
+    _register_telemetry(subparser)
     return parser
 
 

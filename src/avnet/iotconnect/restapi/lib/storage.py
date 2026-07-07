@@ -45,11 +45,12 @@ FILE_MODULE_TYPES = (
 @dataclass
 class File:
     guid: str
-    file: str
+    file: str # signed https URL - valid for limited time
     name: str
     tag: str = field(default=None)
     createdDate: str = field(default=None)
     state: str = field(default=None)
+    key: str = field(default=None) # the path in S3 bucket
 
 @dataclass
 class FileLookupResult:
@@ -73,7 +74,7 @@ def get_files(module_type: str, file_ref_guid: str) -> List[File]:
 
     try:
         response = request(apiurl.ep_file, f'/File/{module_type}/{file_ref_guid}')
-        ret = response.data.get(expr='fileData')
+        ret = response.data.get_object_value('fileData') or []
         return [File(**x) for x in ret]
     except ConflictResponseError:
         return []

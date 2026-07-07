@@ -9,6 +9,8 @@ import sys
 
 import avnet.iotconnect.restapi.lib.device as device
 from avnet.iotconnect.restapi.lib import template
+from avnet.iotconnect.restapi.lib.device import DeviceQuery, DeviceStatus
+from avnet.iotconnect.restapi.lib.query import Sort, Order
 
 TEMPLATE_CODE = 'apidemo1'
 
@@ -51,7 +53,8 @@ else:
 
 with open('device-cert.pem', 'r') as file:
     certificate = file.read()
-    result = device.create(template_guid=t.guid, duid=DUID, device_certificate=certificate)
+    # template accepts a code or a GUID here - we pass the code
+    result = device.create(template_guid=TEMPLATE_CODE, duid=DUID, device_certificate=certificate)
     print('create=', result)
 
 t = template.get_by_template_code(TEMPLATE_CODE)
@@ -62,8 +65,45 @@ else:
     raise ValueError("Template does not seem to have a device associated with it")
 
 
+# --- list / query options -------------------------------------------------
 
-print('delete device=', device.delete_match_guid(result.newid))
+# Page wrapper carries the server-side total count alongside the current page.
+page = device.query()
+print('total devices=', page.total_count)
+print('first page size=', len(page))
+
+# Substring DUID search; the result should contain the device we created.
+page = device.query(DeviceQuery(duid_contains=DUID))
+print('search by duid_contains=', [dev.uniqueId for dev in page])
+assert any(dev.uniqueId == DUID for dev in page), "Created device not found by duid_contains search"
+
+# Filter by template code (resolved to a GUID for us) + sort, small page size.
+q = DeviceQuery(template=TEMPLATE_CODE, sort_by=Sort('uniqueId', Order.ASC), page_size=10)
+page = device.query(q)
+print('filter by template=', [dev.uniqueId for dev in page])
+assert any(dev.uniqueId == DUID for dev in page), "Created device not found by template filter"
+
+# Enum-typed status filter; .all() walks every page transparently.
+active_duids = [dev.uniqueId for dev in device.query(DeviceQuery(status=DeviceStatus.ACTIVE)).all()]
+print('active device count (all pages)=', len(active_duids))
+
+
+# --- named update: activate / deactivate ----------------------------------
+
+device.set_active_match_duid(DUID, False)
+d = device.get_by_duid(DUID)
+print('after deactivate isActive=', d.isActive)
+assert d.isActive is False, "Device should be inactive"
+
+device.set_active_match_duid(DUID, True)
+d = device.get_by_duid(DUID)
+print('after activate isActive=', d.isActive)
+assert d.isActive is True, "Device should be active"
+
+
+# --- cleanup --------------------------------------------------------------
+
+print('delete device=', device.delete_match_duid(DUID))
 
 if do_delete_template:
     print('delete template=', template.delete_match_guid(t.guid))
