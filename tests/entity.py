@@ -11,7 +11,7 @@ print('root=', result)
 print('name=', result.name)
 print('guid=', result.guid)
 
-print('details=', entity.get_detail_by_guid(guid=result.guid))
+print('details=', entity.get_by_guid(guid=result.guid))
 
 result = entity.get_by_name(result.name)
 print('get_by_name=', result)
