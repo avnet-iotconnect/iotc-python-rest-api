@@ -12,7 +12,7 @@ jobs:
         python-version: ["3.11", "3.12", "3.13"]
         platform:
           - { name: "aws", env: "poc" }
-          - { name: "az", env: "avnet" }
+          #  - { name: "az", env: "avnet" } #  azure not szupported due to issues
       max-parallel: 1  # Forces sequential execution of all matrix combinations because of resource collisions
     steps:
       - uses: actions/checkout@v6
